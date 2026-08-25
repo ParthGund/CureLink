@@ -1,0 +1,14 @@
+{
+  "name": "curelink",
+  "version": "1.0.0",
+  "description": "CureLink - Healthcare Management Platform",
+  "private": true,
+  "scripts": {
+    "client-install": "npm install --prefix client",
+    "client-dev": "npm run dev --prefix client",
+    "client-build": "npm run build --prefix client",
+    "server-install": "npm install --prefix server",
+    "server-start": "npm start --prefix server",
+    "install-all": "npm run client-install && npm run server-install"
+  }
+}

@@ -4,6 +4,8 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
+const connectDatabase = require('./config/database');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -26,6 +28,12 @@ app.use('/api/appointments', (req, res) => res.status(501).json({ message: 'Appo
 app.use('/api/doctors', (req, res) => res.status(501).json({ message: 'Doctor endpoints not implemented in Phase 1.' }));
 app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not implemented in Phase 1.' }));
 
-app.listen(PORT, () => {
-  console.log(`CureLink backend skeleton listening on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectDatabase();
+  app.listen(PORT, () => {
+    console.log(`CureLink backend skeleton listening on port ${PORT}`);
+  });
+};
+
+startServer();
+

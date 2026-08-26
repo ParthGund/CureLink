@@ -1,31 +1,50 @@
-// CureLink Server Skeleton (Phase 1)
+// CureLink Server
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Root endpoint status
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
-    phase: 'Phase 1 - Frontend Skeleton',
-    timestamp: new Date().toISOString()
+    phase: 'Phase 2 - Backend Foundation',
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Serve empty endpoints for later implementation
-app.use('/api/auth', (req, res) => res.status(501).json({ message: 'Auth endpoints not implemented in Phase 1.' }));
-app.use('/api/appointments', (req, res) => res.status(501).json({ message: 'Appointment endpoints not implemented in Phase 1.' }));
-app.use('/api/doctors', (req, res) => res.status(501).json({ message: 'Doctor endpoints not implemented in Phase 1.' }));
-app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not implemented in Phase 1.' }));
+// Routes
+app.use('/api/auth', authRoutes);
 
-app.listen(PORT, () => {
-  console.log(`CureLink backend skeleton listening on port ${PORT}`);
+// Placeholder routes (to be replaced with real route modules)
+app.use('/api/appointments', (req, res) => res.status(501).json({ message: 'Appointment endpoints not yet implemented.' }));
+app.use('/api/doctors', (req, res) => res.status(501).json({ message: 'Doctor endpoints not yet implemented.' }));
+app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not yet implemented.' }));
+
+// Error handling
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+app.use(notFound);
+app.use(errorHandler);
+
+// Connect to database, then start server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`CureLink server running on port ${PORT}`);
+  });
 });
+

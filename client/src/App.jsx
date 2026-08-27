@@ -9,10 +9,14 @@ import Profile from './pages/shared/Profile';
 import RoleLayout from './components/layout/RoleLayout';
 import RoleDashboard from './pages/shared/RoleDashboard';
 import ResourcePage from './pages/shared/ResourcePage';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/patient" element={<PatientLayout />}>
         <Route path="dashboard" element={<PatientDashboard />} />
         <Route path="appointments" element={<PatientAppointments />} />
@@ -36,7 +40,7 @@ export default function App() {
         <Route path="appointments" element={<ResourcePage title="Appointments" description="Monitor appointments across the platform." emptyTitle="No appointments to show" emptyDescription="Appointment records will appear here when available." />} />
         <Route path="reports" element={<ResourcePage title="Reports" description="View platform reporting when data is available." emptyTitle="No reports available" emptyDescription="Reports will appear here when information is available." />} />
       </Route>
-      <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -24,15 +24,6 @@ For more details on coding rules and philosophy, refer to [AGENTS.md](file:///d:
 
 ---
 
-## Development Phase
-
-Currently in **Phase 1 — Frontend Skeleton**. 
-- Backend is a structural skeleton only (no DB connection, no live routes).
-- Frontend utilizes mock services returning promises simulating API interaction.
-- Role switching is built into the frontend developer panel for quick evaluation.
-
----
-
 ## Quick Start
 
 ### 1. Prerequisites

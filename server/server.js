@@ -7,6 +7,8 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const appointmentRoutes = require('./routes/appointmentRoutes');
+const doctorRoutes = require('./routes/doctorRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,10 +32,10 @@ app.get('/api/status', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/doctors', doctorRoutes);
 
 // Placeholder routes (to be replaced with real route modules)
-app.use('/api/appointments', (req, res) => res.status(501).json({ message: 'Appointment endpoints not yet implemented.' }));
-app.use('/api/doctors', (req, res) => res.status(501).json({ message: 'Doctor endpoints not yet implemented.' }));
 app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not yet implemented.' }));
 
 // Error handling
@@ -47,4 +49,3 @@ connectDB().then(() => {
     console.log(`CureLink server running on port ${PORT}`);
   });
 });
-

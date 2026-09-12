@@ -1,4 +1,4 @@
-const Doctor = require("../models/doctor");
+const Doctor = require("../models/Doctor");
 const Appointment = require("../models/Appointment");
 
 const getDoctors = async (req, res) => {

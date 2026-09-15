@@ -1,5 +1,6 @@
-import { Bell, ShieldPlus } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Bell, LogOut, ShieldPlus } from 'lucide-react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const navigation = [
   { label: 'Dashboard', to: '/patient/dashboard' },
@@ -9,6 +10,14 @@ const navigation = [
 ];
 
 export default function PatientLayout() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login', { replace: true });
+  }
+
   return (
     <div className="app-shell">
       <header className="top-nav">
@@ -22,6 +31,7 @@ export default function PatientLayout() {
         <div className="top-nav__actions">
           <button className="icon-button" type="button" aria-label="Notifications"><Bell size={21} /></button>
           <NavLink className="profile-dot" to="/patient/profile" aria-label="Your profile">P</NavLink>
+          <button className="icon-button" type="button" aria-label="Log out" onClick={handleLogout}><LogOut size={19} /></button>
         </div>
       </header>
       <main className="page-content"><Outlet /></main>

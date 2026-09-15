@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ROLE_DASHBOARDS = {
@@ -8,13 +8,11 @@ const ROLE_DASHBOARDS = {
 };
 
 /**
- * Route wrapper that enforces authentication and optional role authorization.
- *
- * @param {{ allowedRoles?: string[] }} props
+ * Route wrapper for public auth pages (login, signup).
+ * Redirects already-authenticated users to their role dashboard.
  */
-export default function ProtectedRoute({ allowedRoles }) {
+export default function RedirectIfAuthenticated() {
   const { user, loading, isAuthenticated } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -24,11 +22,7 @@ export default function ProtectedRoute({ allowedRoles }) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (isAuthenticated) {
     const destination = ROLE_DASHBOARDS[user.role] || '/';
     return <Navigate to={destination} replace />;
   }

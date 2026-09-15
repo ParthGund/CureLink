@@ -29,8 +29,15 @@ export default function Login() {
     setSubmitting(true);
 
     try {
-      await login(email, password);
-      navigate('/patient/dashboard', { replace: true });
+      const data = await login(email, password);
+
+      const role = data.user?.role || 'patient';
+      const dashboardPaths = {
+        patient: '/patient/dashboard',
+        doctor: '/doctor/dashboard',
+        admin: '/admin/dashboard',
+      };
+      navigate(dashboardPaths[role] || '/', { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

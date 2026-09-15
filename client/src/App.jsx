@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import RedirectIfAuthenticated from './components/layout/RedirectIfAuthenticated';
 import PatientLayout from './components/layout/PatientLayout';
 import PatientDashboard from './pages/patient/Dashboard';
 import PatientAppointments from './pages/patient/Appointments';
@@ -16,8 +17,10 @@ import Signup from './pages/auth/Signup';
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      <Route element={<RedirectIfAuthenticated />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+      </Route>
       <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
         <Route path="/patient" element={<PatientLayout />}>
           <Route path="dashboard" element={<PatientDashboard />} />

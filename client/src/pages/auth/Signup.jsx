@@ -21,21 +21,40 @@ export default function Signup() {
   async function handleSubmit(event) {
     event.preventDefault();
     setErrorMsg('');
-    if (!name || !email || !password) {
+
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setErrorMsg('All fields are required.');
       return;
     }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match.');
       return;
     }
+
     setLoading(true);
     try {
-      await register(name, email, password);
-      // registration succeeded – redirect to login page
-      navigate('/login');
+      const data = await register(name.trim(), email.trim(), password);
+
+      const role = data.user?.role || 'patient';
+      const dashboardPaths = {
+        patient: '/patient/dashboard',
+        doctor: '/doctor/dashboard',
+        admin: '/admin/dashboard',
+      };
+      navigate(dashboardPaths[role] || '/', { replace: true });
     } catch (err) {
-      // authService throws an Error with .message set to backend message
       setErrorMsg(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);

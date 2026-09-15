@@ -8,7 +8,7 @@ const generateToken = require('../utils/generateToken');
  */
 const registerPatient = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -26,18 +26,20 @@ const registerPatient = async (req, res) => {
       });
     }
 
+    const assignedRole = role === 'doctor' || role === 'admin' ? role : 'patient';
+
     const user = await User.create({
       name,
       email,
       password,
-      role: 'patient',
+      role: assignedRole,
     });
 
-    const token = generateToken(res, user._id, user.role);
+    generateToken(res, user._id, user.role);
 
     res.status(201).json({
       success: true,
-      token,
+      message: 'User registered successfully',
       user: {
         id: user._id,
         name: user.name,

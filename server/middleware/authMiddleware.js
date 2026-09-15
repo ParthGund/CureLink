@@ -62,7 +62,7 @@ const authorize = (...roles) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Forbidden: Access denied for this role.',
+        message: 'Access denied: insufficient permissions.',
       });
     }
 
@@ -70,4 +70,4 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, authorize, authorizeRoles: authorize };

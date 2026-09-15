@@ -18,8 +18,8 @@ export default function BookAppointment() {
     reasonForVisit: "",
   });
 
+  const [doctors, setDoctors] = useState([]);
   const [doctorId, setDoctorId] = useState("");
-  const [doctorName, setDoctorName] = useState("");
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState("");
@@ -27,12 +27,15 @@ export default function BookAppointment() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const selectedDoctor = doctors.find((d) => d._id === doctorId);
+  const doctorName = selectedDoctor?.name || "";
+
   useEffect(() => {
     getDoctors()
       .then((docs) => {
+        setDoctors(docs);
         if (docs.length > 0) {
           setDoctorId(docs[0]._id);
-          setDoctorName(docs[0].name);
         }
       })
       .catch(console.error);
@@ -77,7 +80,7 @@ export default function BookAppointment() {
       localStorage.setItem("patientId", result.patient._id);
       navigate("/patient/appointments");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to book appointment. Please try again.");
+      setError(err.message || "Failed to book appointment. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -173,11 +176,28 @@ export default function BookAppointment() {
         <section className="booking-content">
           <header>
             <h2>Choose a suitable time</h2>
-            <p>Available appointment times will appear after a clinician and date are selected.</p>
+            <p>Select a clinician and date to see available appointment times.</p>
           </header>
           <div className="booking-grid">
             <Card className="booking-card">
-              <h2>Select date</h2>
+              <label className="field-label" htmlFor="select-doctor">
+                Clinician
+              </label>
+              <select
+                id="select-doctor"
+                value={doctorId}
+                onChange={(e) => {
+                  setDoctorId(e.target.value);
+                  setSelectedSlot("");
+                }}
+              >
+                {doctors.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name} — {d.specialization}
+                  </option>
+                ))}
+              </select>
+
               <label className="field-label" htmlFor="appointment-date">
                 Preferred date
               </label>

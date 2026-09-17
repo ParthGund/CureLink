@@ -20,7 +20,31 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     getMyAppointments()
-      .then((data) => setUpcoming(data.upcoming ?? []))
+      .then((data) => {
+        const all = data.appointments ?? [];
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayMs = today.getTime();
+
+        const upcomingList = all.filter((apt) => {
+          if (apt.status === 'cancelled' || apt.status === 'completed') return false;
+          const raw = apt.appointmentDate || apt.date;
+          if (!raw) return false;
+          const d = new Date(raw);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime() >= todayMs;
+        });
+
+        // Sort ascending so the soonest appointment appears first
+        upcomingList.sort((a, b) => {
+          const dA = new Date(a.appointmentDate || a.date).getTime();
+          const dB = new Date(b.appointmentDate || b.date).getTime();
+          return dA - dB;
+        });
+
+        setUpcoming(upcomingList);
+      })
       .catch(() => setUpcoming([]))
       .finally(() => setLoading(false));
   }, []);

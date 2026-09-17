@@ -1,33 +1,71 @@
-import { useEffect, useState } from 'react';
-import { CalendarClock, History } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { CalendarClock, History, Ban } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentList from '../../components/patient/AppointmentList';
 import { getMyAppointments, cancelAppointment } from '../../services/appointmentService';
 
+/**
+ * Normalises an appointment date (handles both `date` and `appointmentDate` fields)
+ * and zeros out the time portion for accurate day-level comparison.
+ */
+function getAppointmentDay(apt) {
+  const raw = apt.appointmentDate || apt.date;
+  if (!raw) return 0;
+  const d = new Date(raw);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 export default function PatientAppointments() {
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
+  const [cancelled, setCancelled] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  function fetchAppointments() {
+  const fetchAppointments = useCallback(() => {
     setLoading(true);
     getMyAppointments()
       .then((data) => {
-        setUpcoming(data.upcoming ?? []);
-        setPast(data.past ?? []);
+        const all = data.appointments ?? [];
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayMs = today.getTime();
+
+        const upcomingList = [];
+        const pastList = [];
+        const cancelledList = [];
+
+        for (const apt of all) {
+          if (apt.status === 'cancelled') {
+            cancelledList.push(apt);
+          } else if (getAppointmentDay(apt) >= todayMs && apt.status !== 'completed') {
+            upcomingList.push(apt);
+          } else {
+            pastList.push(apt);
+          }
+        }
+
+        // Upcoming sorted ascending (soonest first)
+        upcomingList.sort((a, b) => getAppointmentDay(a) - getAppointmentDay(b));
+
+        setUpcoming(upcomingList);
+        setPast(pastList);
+        setCancelled(cancelledList);
       })
       .catch(() => {
         setUpcoming([]);
         setPast([]);
+        setCancelled([]);
       })
       .finally(() => setLoading(false));
-  }
+  }, []);
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [fetchAppointments]);
 
   async function handleCancel(id) {
     try {
@@ -84,6 +122,13 @@ export default function PatientAppointments() {
           )}
         </section>
       </div>
+
+      {!loading && cancelled.length > 0 && (
+        <section className="cancelled-section">
+          <h2>Cancelled Appointments</h2>
+          <AppointmentList appointments={cancelled} />
+        </section>
+      )}
     </div>
   );
 }

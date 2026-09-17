@@ -24,3 +24,4 @@
 .appointment-card__reason { margin: 0; font-size: 13px; color: var(--slate); line-height: 1.4; }
 .appointment-card__cancel { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; border: 0; background: none; color: #8b2d36; font-size: 13px; font-weight: 600; cursor: pointer; }
 .appointment-card__cancel:hover { color: #6b1f27; }
+.cancelled-section { margin-top: 32px; }.cancelled-section > h2 { margin: 0 0 16px 8px; }

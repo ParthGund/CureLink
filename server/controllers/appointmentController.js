@@ -66,20 +66,12 @@ const createAppointment = async (req, res) => {
 const getPatientAppointments = async (req, res) => {
   try {
     const { patientId } = req.params;
-    const now = new Date();
 
     const appointments = await Appointment.find({ patient: patientId })
       .populate("doctor", "name specialization email")
-      .sort({ date: 1 });
+      .sort({ date: -1, timeSlot: 1 });
 
-    const upcoming = appointments.filter(
-      (a) => a.status === "upcoming" && new Date(a.date) >= new Date(now.toDateString())
-    );
-    const past = appointments.filter(
-      (a) => a.status !== "upcoming" || new Date(a.date) < new Date(now.toDateString())
-    );
-
-    res.status(200).json({ success: true, upcoming, past });
+    res.status(200).json({ success: true, appointments });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch appointments", error: error.message });
   }

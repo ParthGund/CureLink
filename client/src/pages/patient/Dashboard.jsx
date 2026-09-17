@@ -1,7 +1,12 @@
+import { useEffect, useState } from 'react';
 import { ClipboardPlus, FileText, FolderOpen, FlaskConical, CalendarCheck, Pill } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
+import AppointmentList from '../../components/patient/AppointmentList';
+import { getMyAppointments } from '../../services/appointmentService';
+
+const DASHBOARD_APPOINTMENT_LIMIT = 3;
 
 const overviewItems = [
   { label: 'Consultations', icon: ClipboardPlus },
@@ -10,6 +15,18 @@ const overviewItems = [
 ];
 
 export default function PatientDashboard() {
+  const [upcoming, setUpcoming] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyAppointments()
+      .then((data) => setUpcoming(data.upcoming ?? []))
+      .catch(() => setUpcoming([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const displayedAppointments = upcoming.slice(0, DASHBOARD_APPOINTMENT_LIMIT);
+
   return (
     <div className="dashboard-page">
       <header className="page-heading">
@@ -22,12 +39,18 @@ export default function PatientDashboard() {
             <h2>Upcoming Appointments</h2>
             <Button to="/patient/appointments" variant="text">View All</Button>
           </div>
-          <EmptyState
-            icon={CalendarCheck}
-            title="No upcoming appointments"
-            description="Your scheduled appointments will appear here."
-            action={<Button to="/patient/appointments/book">Book an Appointment</Button>}
-          />
+          {loading ? (
+            <p className="loading-text">Loading appointments…</p>
+          ) : displayedAppointments.length > 0 ? (
+            <AppointmentList appointments={displayedAppointments} />
+          ) : (
+            <EmptyState
+              icon={CalendarCheck}
+              title="No upcoming appointments"
+              description="Your scheduled appointments will appear here."
+              action={<Button to="/patient/appointments/book">Book an Appointment</Button>}
+            />
+          )}
         </Card>
         <Card className="overview-card">
           <div className="card-heading"><h2>Health Overview</h2></div>

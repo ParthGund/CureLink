@@ -42,6 +42,19 @@ export async function getPatientAppointments(patientId) {
 }
 
 /**
+ * Fetch appointments for the currently logged-in patient.
+ * Uses the patientId stored in localStorage after booking.
+ * @returns {Promise<{ upcoming: object[], past: object[] }>}
+ */
+export async function getMyAppointments() {
+  const patientId = localStorage.getItem('patientId');
+  if (!patientId) {
+    return { upcoming: [], past: [] };
+  }
+  return getPatientAppointments(patientId);
+}
+
+/**
  * Cancel an existing appointment.
  * @param {string} id - Appointment MongoDB _id.
  * @returns {Promise<object>} The updated appointment.

@@ -10,11 +10,10 @@ const roleNavigation = {
     ['Patients', 'patients'],
   ],
   admin: [
-    ['Dashboard', 'dashboard'],
+    ['Overview', 'dashboard'],
     ['Doctors', 'doctors'],
-    ['Appointments', 'appointments'],
     ['Patients', 'patients'],
-    ['Reports', 'reports'],
+    ['Appointments', 'appointments'],
   ],
 };
 

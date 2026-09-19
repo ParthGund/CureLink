@@ -11,6 +11,10 @@ import Profile from './pages/shared/Profile';
 import RoleLayout from './components/layout/RoleLayout';
 import RoleDashboard from './pages/shared/RoleDashboard';
 import ResourcePage from './pages/shared/ResourcePage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminDoctors from './pages/admin/AdminDoctors';
+import AdminPatients from './pages/admin/AdminPatients';
+import AdminAppointments from './pages/admin/AdminAppointments';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 
@@ -43,11 +47,10 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin" element={<RoleLayout role="admin" />}>
-          <Route path="dashboard" element={<RoleDashboard role="Administrator" />} />
-          <Route path="doctors" element={<ResourcePage title="Doctors" description="Manage registered healthcare practitioners." emptyTitle="No doctors to show" emptyDescription="Doctor records will appear here when available." />} />
-          <Route path="patients" element={<ResourcePage title="Patients" description="Manage patient accounts and information." emptyTitle="No patients to show" emptyDescription="Patient records will appear here when available." />} />
-          <Route path="appointments" element={<ResourcePage title="Appointments" description="Monitor appointments across the platform." emptyTitle="No appointments to show" emptyDescription="Appointment records will appear here when available." />} />
-          <Route path="reports" element={<ResourcePage title="Reports" description="View platform reporting when data is available." emptyTitle="No reports available" emptyDescription="Reports will appear here when information is available." />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="doctors" element={<AdminDoctors />} />
+          <Route path="patients" element={<AdminPatients />} />
+          <Route path="appointments" element={<AdminAppointments />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

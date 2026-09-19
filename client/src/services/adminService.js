@@ -1,0 +1,77 @@
+import api from './api';
+
+/**
+ * Fetch aggregated platform statistics.
+ * @returns {Promise<{ totalDoctors, totalPatients, totalAppointments, pendingAppointments }>}
+ */
+export async function getStats() {
+  const data = await api('/admin/stats');
+  return data.stats;
+}
+
+/**
+ * Fetch all doctors (with linked user info when available).
+ * @returns {Promise<object[]>}
+ */
+export async function getDoctors() {
+  const data = await api('/admin/doctors');
+  return data.doctors;
+}
+
+/**
+ * Create a new doctor account and profile.
+ * @param {object} doctorData - { name, email, password, specialization, ... }
+ * @returns {Promise<object>} Created doctor document.
+ */
+export async function createDoctor(doctorData) {
+  return api('/admin/doctors', {
+    method: 'POST',
+    body: JSON.stringify(doctorData),
+  });
+}
+
+/**
+ * Remove a doctor profile and linked user record.
+ * @param {string} id - Doctor MongoDB _id.
+ */
+export async function deleteDoctor(id) {
+  return api(`/admin/doctors/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * Fetch all patient users.
+ * @returns {Promise<object[]>}
+ */
+export async function getPatients() {
+  const data = await api('/admin/patients');
+  return data.patients;
+}
+
+/**
+ * Remove a patient user record.
+ * @param {string} id - User MongoDB _id (role: patient).
+ */
+export async function deletePatient(id) {
+  return api(`/admin/patients/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * Fetch all appointments with patient and doctor details.
+ * @returns {Promise<object[]>}
+ */
+export async function getAppointments() {
+  const data = await api('/admin/appointments');
+  return data.appointments;
+}
+
+/**
+ * Update an appointment's status.
+ * @param {string} id - Appointment MongoDB _id.
+ * @param {string} status - New status ('cancelled' | 'completed' | 'upcoming').
+ */
+export async function updateAppointmentStatus(id, status) {
+  return api(`/admin/appointments/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}

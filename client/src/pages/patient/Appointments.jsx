@@ -84,7 +84,10 @@ export default function PatientAppointments() {
           <h1>Appointments</h1>
           <p>Manage your upcoming and past consultations.</p>
         </div>
-        <Button to="/patient/appointments/book">Book Appointment</Button>
+        <div className="page-heading__actions">
+          <Button to="/patient/doctors" variant="secondary">Find a Doctor</Button>
+          <Button to="/patient/appointments/book">Book Appointment</Button>
+        </div>
       </header>
 
       <div className="two-column-page">

@@ -7,10 +7,14 @@ import PatientAppointments from './pages/patient/Appointments';
 import BookAppointment from './pages/patient/BookAppointment';
 import MedicalHistory from './pages/patient/MedicalHistory';
 import Messages from './pages/patient/Messages';
+import Doctors from './pages/patient/Doctors';
+import DoctorProfile from './pages/patient/DoctorProfile';
 import Profile from './pages/shared/Profile';
 import RoleLayout from './components/layout/RoleLayout';
 import RoleDashboard from './pages/shared/RoleDashboard';
 import ResourcePage from './pages/shared/ResourcePage';
+import DoctorOwnProfile from './pages/doctor/DoctorProfile';
+import Schedule from './pages/doctor/Schedule';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminDoctors from './pages/admin/AdminDoctors';
 import AdminPatients from './pages/admin/AdminPatients';
@@ -32,17 +36,19 @@ export default function App() {
           <Route path="appointments/book" element={<BookAppointment />} />
           <Route path="medical-history" element={<MedicalHistory />} />
           <Route path="messages" element={<Messages />} />
+          <Route path="doctors" element={<Doctors />} />
+          <Route path="doctors/:doctorId" element={<DoctorProfile />} />
           <Route path="profile" element={<Profile role="patient" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
         <Route path="/doctor" element={<RoleLayout role="doctor" />}>
           <Route path="dashboard" element={<RoleDashboard role="Doctor" />} />
-          <Route path="schedule" element={<ResourcePage title="My Schedule" description="Manage your availability and upcoming consultations." emptyTitle="No schedule available" emptyDescription="Your schedule will appear here when it is available." />} />
+          <Route path="schedule" element={<Schedule />} />
           <Route path="appointments" element={<ResourcePage title="Appointments" description="Review consultations scheduled with your patients." emptyTitle="No appointments yet" emptyDescription="Scheduled consultations will appear here." />} />
           <Route path="consultations" element={<ResourcePage title="Consultations" description="Record and review authorised patient consultations." emptyTitle="No consultations yet" emptyDescription="Your consultation records will appear here." />} />
           <Route path="patients" element={<ResourcePage title="Patients" description="View patients assigned to your care." emptyTitle="No patients to show" emptyDescription="Your authorised patients will appear here." />} />
-          <Route path="profile" element={<Profile role="doctor" />} />
+          <Route path="profile" element={<DoctorOwnProfile />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

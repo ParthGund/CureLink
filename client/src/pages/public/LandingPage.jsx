@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LandingPage() {
+  const { isAuthenticated, user } = useAuth();
+  
+  const dashboardPath = user ? `/$\{user.role === 'admin' ? 'admin' : user.role === 'doctor' ? 'doctor' : 'patient'}/dashboard` : '/login';
+
   return (
     <div className="landing-page">
       <nav className="landing-nav">
@@ -11,8 +16,14 @@ export default function LandingPage() {
           <a href="#how-it-works">About</a>
         </div>
         <div className="landing-nav__actions">
-          <Link to="/login" className="button button--text">Sign In</Link>
-          <Link to="/signup" className="button">Register</Link>
+          {isAuthenticated ? (
+            <Link to={dashboardPath} className="button">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/login" className="button button--text">Sign In</Link>
+              <Link to="/signup" className="button">Register</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -24,8 +35,14 @@ export default function LandingPage() {
             Connecting you with verified specialists effortlessly.
           </p>
           <div className="landing-hero__actions">
-            <Link to="/login" className="button">Book Appointment</Link>
-            <Link to="/login" className="button button--secondary">Doctor Portal</Link>
+            {isAuthenticated ? (
+              <Link to={dashboardPath} className="button">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link to="/login" className="button">Book Appointment</Link>
+                <Link to="/login" className="button button--secondary">Doctor Portal</Link>
+              </>
+            )}
           </div>
         </div>
       </header>

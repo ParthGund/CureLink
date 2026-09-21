@@ -21,10 +21,12 @@ import AdminPatients from './pages/admin/AdminPatients';
 import AdminAppointments from './pages/admin/AdminAppointments';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import LandingPage from './pages/public/LandingPage';
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route element={<RedirectIfAuthenticated />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

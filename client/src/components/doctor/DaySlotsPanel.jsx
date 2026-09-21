@@ -1,102 +1,239 @@
-import { formatDisplayDate } from '../../utils/dateUtils';
-import { updateMySlot, cancelMyDay } from '../../services/doctorService';
 import { useState } from 'react';
-import EditSlotModal from './EditSlotModal';
+import { Plus, Lock } from 'lucide-react';
+import { formatDisplayDate } from '../../utils/dateUtils';
+import { cancelMyDay } from '../../services/doctorService';
+import SlotActionBar from './SlotActionBar';
+import AvailabilityForm from './AvailabilityForm';
 
-export default function DaySlotsPanel({ date, slots, onSlotsChanged }) {
-  const [editingSlot, setEditingSlot] = useState(null);
+/**
+ * Panel showing slots for a single day with time pills, actions, and inline forms.
+ *
+ * @param {{
+ *   date: string,
+ *   slots: Array,
+ *   schedule: object,
+ *   onSlotsChanged: () => void,
+ *   onUndoMsg: (msg: string, undoInfo?: object) => void,
+ * }} props
+ */
+export default function DaySlotsPanel({ date, slots, schedule, onSlotsChanged, onUndoMsg }) {
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmDayOff, setConfirmDayOff] = useState(false);
+  const [error, setError] = useState('');
   const [cancellingDay, setCancellingDay] = useState(false);
-  const [msg, setMsg] = useState('');
 
   const displayDate = formatDisplayDate(date);
-  
-  // A day can be cancelled if there is at least one open, unbooked slot
-  const canCancelDay = slots.some(s => s.status === 'open' && !s.isBooked);
 
-  const handleCancelDay = async () => {
-    if (!window.confirm(`Cancel all open times on ${displayDate}? Booked times stay.`)) return;
-    
+  // Counts
+  const openCount = slots.filter(s => s.status === 'open' && !s.isBooked).length;
+  const bookedCount = slots.filter(s => s.isBooked).length;
+  const cancelledCount = slots.filter(s => s.status === 'cancelled').length;
+
+  const hasSlots = slots.length > 0;
+  const canTakeDayOff = openCount > 0;
+
+  // Build summary string, omitting zeros
+  const summaryParts = [];
+  if (openCount > 0) summaryParts.push(`${openCount} open`);
+  if (bookedCount > 0) summaryParts.push(`${bookedCount} booked`);
+  if (cancelledCount > 0) summaryParts.push(`${cancelledCount} cancelled`);
+  const summaryStr = summaryParts.join(' · ');
+
+  const selectedSlot = selectedSlotId ? slots.find(s => s.id === selectedSlotId) : null;
+
+  function clearState() {
+    setSelectedSlotId(null);
+    setShowAddForm(false);
+    setConfirmDayOff(false);
+    setError('');
+  }
+
+  function handlePillClick(slotId) {
+    setSelectedSlotId(prev => (prev === slotId ? null : slotId));
+    setShowAddForm(false);
+    setConfirmDayOff(false);
+    setError('');
+  }
+
+  async function handleCancelDay() {
     setCancellingDay(true);
-    setMsg('');
+    setError('');
     try {
+      // Collect open unbooked slot IDs before cancelling (for undo)
+      const openSlotIds = slots
+        .filter(s => s.status === 'open' && !s.isBooked)
+        .map(s => s.id);
+
       const res = await cancelMyDay(date);
-      setMsg(res.message);
+      clearState();
       onSlotsChanged();
+      onUndoMsg(res.message || `Cancelled ${openSlotIds.length} open times. Booked times were kept.`, {
+        type: 'day-off',
+        slotIds: openSlotIds,
+      });
     } catch (err) {
-      setMsg(err.message || 'Failed to cancel day.');
+      setError(err.message || 'Failed to cancel the day.');
     } finally {
       setCancellingDay(false);
     }
-  };
+  }
 
-  const handleToggleStatus = async (slot) => {
-    const newStatus = slot.status === 'cancelled' ? 'open' : 'cancelled';
-    setMsg('');
-    try {
-      await updateMySlot(slot.id, { status: newStatus });
-      onSlotsChanged();
-    } catch (err) {
-      setMsg(err.message || `Failed to ${newStatus === 'open' ? 'reopen' : 'cancel'} slot.`);
+  function handleSlotActionDone(msg, undoInfo) {
+    clearState();
+    onSlotsChanged();
+    if (undoInfo) {
+      onUndoMsg(msg, undoInfo);
+    } else {
+      onUndoMsg(msg);
     }
-  };
+  }
+
+  function handleSlotActionError(msg) {
+    setError(msg);
+  }
+
+  function handleExtraTimeCreated() {
+    clearState();
+    onSlotsChanged();
+    onUndoMsg('Extra time added.');
+  }
 
   return (
-    <div className="schedule-day-panel">
-      <div className="schedule-day-header">
-        <h3>{displayDate}</h3>
-        <button
-          type="button"
-          className="button button--secondary"
-          onClick={handleCancelDay}
-          disabled={!canCancelDay || cancellingDay}
-        >
-          {cancellingDay ? 'Cancelling…' : 'Cancel day'}
-        </button>
+    <div className="sch2-day-panel">
+      {/* Header */}
+      <div className="sch2-day-panel__header">
+        <div>
+          <h3 className="sch2-day-panel__date">{displayDate}</h3>
+          {hasSlots ? (
+            <p className="sch2-day-panel__summary">{summaryStr}</p>
+          ) : (
+            <p className="sch2-day-panel__summary sch2-day-panel__summary--off">
+              You&rsquo;re not scheduled to work this day.
+            </p>
+          )}
+        </div>
+        <div className="sch2-day-panel__actions">
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => {
+              setShowAddForm(prev => !prev);
+              setSelectedSlotId(null);
+              setConfirmDayOff(false);
+              setError('');
+            }}
+          >
+            <Plus size={15} aria-hidden="true" />
+            Add extra time
+          </button>
+          {canTakeDayOff && (
+            <button
+              type="button"
+              className="button button--secondary sch2-btn--danger"
+              onClick={() => {
+                setConfirmDayOff(true);
+                setSelectedSlotId(null);
+                setShowAddForm(false);
+                setError('');
+              }}
+            >
+              Take the day off
+            </button>
+          )}
+        </div>
       </div>
 
-      {msg && <p className="schedule-msg schedule-msg--info" role="status">{msg}</p>}
+      {error && <p className="sch2-day-panel__error" role="alert">{error}</p>}
 
-      {slots.length === 0 ? (
-        <p className="schedule-empty-day">No times on this day.</p>
-      ) : (
-        <div className="schedule-slot-grid">
-          {slots.map(slot => {
-            const isCancelled = slot.status === 'cancelled';
-            return (
-              <div key={slot.id} className={`schedule-slot-card ${isCancelled ? 'schedule-slot-card--cancelled' : ''}`}>
-                <div className="schedule-slot-card__info">
-                  <span className="schedule-slot-card__time">{slot.label}</span>
-                  <span className="schedule-slot-card__range">{slot.startTime} – {slot.endTime}</span>
-                  {slot.isBooked && <span className="schedule-slot-card__badge schedule-slot-card__badge--booked">Booked</span>}
-                  {isCancelled && <span className="schedule-slot-card__badge schedule-slot-card__badge--cancelled">Cancelled</span>}
-                </div>
-                <div className="schedule-slot-card__actions">
-                  {slot.isBooked ? (
-                    <button type="button" className="button button--text" disabled title="Cannot edit booked slot">Edit</button>
-                  ) : isCancelled ? (
-                    <button type="button" className="button button--text" onClick={() => handleToggleStatus(slot)}>Reopen</button>
-                  ) : (
-                    <>
-                      <button type="button" className="button button--text" onClick={() => setEditingSlot(slot)}>Edit</button>
-                      <button type="button" className="button button--text" onClick={() => handleToggleStatus(slot)}>Cancel</button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {/* Day-off inline confirm */}
+      {confirmDayOff && (
+        <div className="sch2-confirm">
+          <span>Cancel {openCount} open {openCount === 1 ? 'time' : 'times'}? Booked times stay.</span>
+          <div className="sch2-confirm__btns">
+            <button
+              type="button"
+              className="button button--secondary sch2-btn--danger"
+              onClick={handleCancelDay}
+              disabled={cancellingDay}
+            >
+              {cancellingDay ? 'Cancelling…' : 'Cancel times'}
+            </button>
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => setConfirmDayOff(false)}
+              disabled={cancellingDay}
+            >
+              Keep
+            </button>
+          </div>
         </div>
       )}
 
-      {editingSlot && (
-        <EditSlotModal
-          slot={editingSlot}
-          onClose={() => setEditingSlot(null)}
-          onSaved={() => {
-            setEditingSlot(null);
-            onSlotsChanged();
-          }}
-        />
+      {/* Add extra time — inline form */}
+      {showAddForm && (
+        <div className="sch2-day-panel__add-form">
+          <AvailabilityForm
+            onCreated={handleExtraTimeCreated}
+            initialDate={date}
+            hideDate
+            defaultDuration={schedule?.slotDurationMinutes || 30}
+            onCancel={() => setShowAddForm(false)}
+          />
+        </div>
+      )}
+
+      {/* Time pills */}
+      {hasSlots ? (
+        <>
+          <div className="sch2-pills">
+            {slots.map(slot => {
+              const isOpen = slot.status === 'open' && !slot.isBooked;
+              const isBooked = slot.isBooked;
+              const isCancelled = slot.status === 'cancelled';
+              const isSelected = selectedSlotId === slot.id;
+
+              return (
+                <button
+                  key={slot.id}
+                  type="button"
+                  className={
+                    'sch2-pill' +
+                    (isOpen ? ' sch2-pill--open' : '') +
+                    (isBooked ? ' sch2-pill--booked' : '') +
+                    (isCancelled ? ' sch2-pill--cancelled' : '') +
+                    (isSelected ? ' sch2-pill--sel' : '')
+                  }
+                  aria-pressed={isSelected}
+                  onClick={() => handlePillClick(slot.id)}
+                >
+                  {isBooked && <Lock size={12} aria-hidden="true" />}
+                  <span className={isCancelled ? 'sch2-pill__strike' : ''}>
+                    {slot.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Slot action bar */}
+          {selectedSlot ? (
+            <SlotActionBar
+              key={selectedSlot.id}
+              slot={selectedSlot}
+              onDone={handleSlotActionDone}
+              onError={handleSlotActionError}
+            />
+          ) : (
+            <p className="sch2-day-panel__hint">Select a time to cancel or change it.</p>
+          )}
+        </>
+      ) : (
+        <div className="sch2-day-panel__empty">
+          <p className="sch2-day-panel__empty-title">No times on this day</p>
+          <p className="sch2-day-panel__empty-desc">Use Add extra time to open a one-off slot.</p>
+        </div>
       )}
     </div>
   );

@@ -21,27 +21,42 @@ function computeSlotCount(startTime, endTime, durationMinutes) {
 
 /**
  * Form for a doctor to add a block of available time slots.
- * @param {{ onCreated: () => void }} props
+ * @param {{
+ *   onCreated: () => void,
+ *   initialDate?: string,
+ *   hideDate?: boolean,
+ *   defaultDuration?: number,
+ *   onCancel?: () => void,
+ * }} props
  */
-export default function AvailabilityForm({ onCreated }) {
+export default function AvailabilityForm({
+  onCreated,
+  initialDate,
+  hideDate,
+  defaultDuration,
+  onCancel,
+}) {
   const today = getTodayIso();
 
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(initialDate || '');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(defaultDuration || 30);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // When hideDate is set, use initialDate instead of the date field
+  const effectiveDate = hideDate ? (initialDate || '') : date;
+
   // Derived — not stored in state
   const slotCount = computeSlotCount(startTime, endTime, duration);
-  const canSubmit = date && startTime && endTime && slotCount > 0 && !submitting;
+  const canSubmit = effectiveDate && startTime && endTime && slotCount > 0 && !submitting;
 
   function resetForm() {
-    setDate('');
+    setDate(initialDate || '');
     setStartTime('');
     setEndTime('');
-    setDuration(30);
+    setDuration(defaultDuration || 30);
     setError('');
   }
 
@@ -51,7 +66,7 @@ export default function AvailabilityForm({ onCreated }) {
     setSubmitting(true);
     try {
       await createMySlots({
-        date,
+        date: effectiveDate,
         startTime,
         endTime,
         slotDurationMinutes: duration,
@@ -69,18 +84,20 @@ export default function AvailabilityForm({ onCreated }) {
     <form className="avail-form" onSubmit={handleSubmit} noValidate>
       {error && <p className="schedule-msg schedule-msg--error" role="alert">{error}</p>}
 
-      <div className="avail-form__field">
-        <label className="avail-form__label" htmlFor="af-date">Date</label>
-        <input
-          id="af-date"
-          type="date"
-          className="avail-form__input"
-          min={today}
-          value={date}
-          onChange={(e) => { setDate(e.target.value); setError(''); }}
-          required
-        />
-      </div>
+      {!hideDate && (
+        <div className="avail-form__field">
+          <label className="avail-form__label" htmlFor="af-date">Date</label>
+          <input
+            id="af-date"
+            type="date"
+            className="avail-form__input"
+            min={today}
+            value={date}
+            onChange={(e) => { setDate(e.target.value); setError(''); }}
+            required
+          />
+        </div>
+      )}
 
       <div className="avail-form__row">
         <div className="avail-form__field">
@@ -127,13 +144,25 @@ export default function AvailabilityForm({ onCreated }) {
           : 'Enter a date, start time, and end time to see a preview.'}
       </p>
 
-      <button
-        type="submit"
-        className="button"
-        disabled={!canSubmit}
-      >
-        {submitting ? 'Adding…' : 'Add slots'}
-      </button>
+      <div className="avail-form__actions">
+        <button
+          type="submit"
+          className="button"
+          disabled={!canSubmit}
+        >
+          {submitting ? 'Adding…' : 'Add slots'}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

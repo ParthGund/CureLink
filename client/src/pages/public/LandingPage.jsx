@@ -1,53 +1,47 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LandingPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   
-  const dashboardPath = user ? `/$\{user.role === 'admin' ? 'admin' : user.role === 'doctor' ? 'doctor' : 'patient'}/dashboard` : '/login';
+  if (loading) {
+    return null;
+  }
+
+  if (isAuthenticated && user) {
+    const dashboardPath = user.role === 'admin' ? '/admin/dashboard' : user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard';
+    return <Navigate to={dashboardPath} replace />;
+  }
 
   return (
     <div className="landing-page">
       <nav className="landing-nav">
         <div className="landing-nav__brand">CureLink</div>
         <div className="landing-nav__links">
-          <a href="#features">Features</a>
+          <a href="#services">Services</a>
           <a href="#specialists">Specialists</a>
-          <a href="#how-it-works">About</a>
+          <a href="#about">About</a>
         </div>
         <div className="landing-nav__actions">
-          {isAuthenticated ? (
-            <Link to={dashboardPath} className="button">Go to Dashboard</Link>
-          ) : (
-            <>
-              <Link to="/login" className="button button--text">Sign In</Link>
-              <Link to="/signup" className="button">Register</Link>
-            </>
-          )}
+          <Link to="/login" className="button button--text">Sign In</Link>
+          <Link to="/signup" className="button">Create Patient Account</Link>
         </div>
       </nav>
 
       <header className="landing-hero">
         <div className="landing-hero__content">
-          <h1>Modern Healthcare, Simplified</h1>
+          <h1>Healthcare Simplified: Book Consultations &amp; Manage Records</h1>
           <p>
-            Experience instant appointment booking and secure digital health records.
-            Connecting you with verified specialists effortlessly.
+            Instant appointment booking with verified doctors and 24/7 digital medical records.
           </p>
           <div className="landing-hero__actions">
-            {isAuthenticated ? (
-              <Link to={dashboardPath} className="button">Go to Dashboard</Link>
-            ) : (
-              <>
-                <Link to="/login" className="button">Book Appointment</Link>
-                <Link to="/login" className="button button--secondary">Doctor Portal</Link>
-              </>
-            )}
+            <Link to="/signup" className="button">Book an Appointment</Link>
+            <Link to="/login" className="button button--secondary">Portal Sign In</Link>
           </div>
         </div>
       </header>
 
-      <section id="features" className="landing-features">
+      <section id="services" className="landing-features">
         <h2>Why Choose CureLink?</h2>
         <div className="landing-features__grid">
           <div className="landing-feature-card">
@@ -55,11 +49,11 @@ export default function LandingPage() {
             <p>Browse experienced healthcare professionals across departments.</p>
           </div>
           <div className="landing-feature-card">
-            <h3>Real-Time Slot Booking</h3>
-            <p>Zero wait times and conflict-free booking.</p>
+            <h3>Conflict-Free Slot Booking</h3>
+            <p>Zero wait times and seamless scheduling.</p>
           </div>
           <div className="landing-feature-card">
-            <h3>Digital Medical Records</h3>
+            <h3>Secure Digital Records</h3>
             <p>Secure access to prescriptions, visit history, and consultations.</p>
           </div>
         </div>
@@ -70,15 +64,15 @@ export default function LandingPage() {
         <div className="landing-steps__grid">
           <div className="landing-step">
             <div className="landing-step__number">1</div>
-            <h3>Create Patient Account</h3>
+            <h3>Register Patient Profile</h3>
           </div>
           <div className="landing-step">
             <div className="landing-step__number">2</div>
-            <h3>Select Specialist &amp; Time Slot</h3>
+            <h3>Select Specialist &amp; Available Slot</h3>
           </div>
           <div className="landing-step">
             <div className="landing-step__number">3</div>
-            <h3>Get Confirmed Care</h3>
+            <h3>Attend Consultation &amp; Access EMR</h3>
           </div>
         </div>
       </section>
@@ -88,8 +82,8 @@ export default function LandingPage() {
           <div className="landing-footer__brand">CureLink</div>
           <p>Student Project • Healthcare Management System</p>
           <div className="landing-footer__links">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">About</a>
+            <a href="#services">Services</a>
+            <a href="#about">About</a>
             <Link to="/login">Sign In</Link>
           </div>
         </div>

@@ -9,6 +9,7 @@ import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AddDoctorModal from '../../components/admin/AddDoctorModal';
 import { getDoctors, deleteDoctor } from '../../services/adminService';
+import { useToast } from '../../context/ToastContext';
 
 const SKELETON_ROWS = 4;
 
@@ -22,6 +23,7 @@ function formatDays(days) {
 }
 
 export default function AdminDoctors() {
+  const toast = useToast();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,6 +63,7 @@ export default function AdminDoctors() {
     try {
       await deleteDoctor(doctor._id);
       setDoctors((prev) => prev.filter((d) => d._id !== doctor._id));
+      toast.success('Doctor profile removed');
     } catch (err) {
       alert(err.message || 'Failed to remove doctor.');
     } finally {
@@ -182,7 +185,10 @@ export default function AdminDoctors() {
       <AddDoctorModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreated={fetchDoctors}
+        onCreated={() => {
+          toast.success('Doctor registered successfully');
+          fetchDoctors();
+        }}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import AuthCard from '../../components/auth/AuthCard';
 import AuthFooter from '../../components/auth/AuthFooter';
 import AuthHeader from '../../components/auth/AuthHeader';
@@ -11,6 +12,7 @@ import PasswordInput from '../../components/auth/PasswordInput';
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const toast = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,9 +39,11 @@ export default function Login() {
         doctor: '/doctor/dashboard',
         admin: '/admin/dashboard',
       };
+      toast.success('Welcome back, ' + (data.user?.name || 'User'));
       navigate(dashboardPaths[role] || '/', { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
+      toast.error(err.message || 'Login failed. Please try again.');
     } finally {
       setSubmitting(false);
     }

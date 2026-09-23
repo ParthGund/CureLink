@@ -3,6 +3,7 @@ import { Search, CalendarCheck, ChevronDown } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import { getAppointments, updateAppointmentStatus } from '../../services/adminService';
+import { useToast } from '../../context/ToastContext';
 
 const SKELETON_ROWS = 5;
 
@@ -23,6 +24,7 @@ function formatDate(iso) {
 }
 
 export default function AdminAppointments() {
+  const toast = useToast();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -78,6 +80,7 @@ export default function AdminAppointments() {
           a._id === appointment._id ? { ...a, status: newStatus } : a
         )
       );
+      toast.success('Appointment status updated');
     } catch (err) {
       alert(err.message || 'Failed to update appointment status.');
     } finally {

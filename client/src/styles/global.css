@@ -3265,31 +3265,25 @@ select.modal-input {
   }
 }
 
-/* ── Auth Back to Home ───────────────────────────────────────── */
-.auth-page__container {
+/* ── Auth Footer Back to Home ────────────────────────────────── */
+.auth-footer__home {
+  margin-top: 12px;
   display: flex;
-  flex-direction: column;
-  width: min(100%, 440px);
-  gap: 16px;
+  justify-content: center;
 }
 
-.auth-page__container .auth-card {
-  width: 100%;
-}
-
-.auth-back-home {
+.auth-footer__home-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--slate);
-  font-size: 14px;
+  color: var(--slate) !important;
+  font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
-  align-self: flex-start;
   transition: all 0.2s ease;
 }
 
-.auth-back-home:hover {
-  color: var(--teal-dark);
-  transform: translateX(-4px);
+.auth-footer__home-link:hover {
+  color: var(--teal) !important;
+  transform: translateX(-3px);
 }

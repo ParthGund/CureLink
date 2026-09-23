@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useEffect } from 'react';
 
 const ROLE_DASHBOARDS = {
   patient: '/patient/dashboard',
@@ -15,6 +16,19 @@ const ROLE_DASHBOARDS = {
 export default function ProtectedRoute({ allowedRoles }) {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.history.pushState(null, '', window.location.href);
+      const handlePopState = () => {
+        window.history.pushState(null, '', window.location.href);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isAuthenticated, location.pathname]);
 
   if (loading) {
     return (

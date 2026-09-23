@@ -3264,3 +3264,32 @@ select.modal-input {
     width: 100%;
   }
 }
+
+/* ── Auth Back to Home ───────────────────────────────────────── */
+.auth-page__container {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 440px);
+  gap: 16px;
+}
+
+.auth-page__container .auth-card {
+  width: 100%;
+}
+
+.auth-back-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--slate);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  align-self: flex-start;
+  transition: all 0.2s ease;
+}
+
+.auth-back-home:hover {
+  color: var(--teal-dark);
+  transform: translateX(-4px);
+}

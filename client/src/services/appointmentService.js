@@ -33,25 +33,12 @@ export async function bookAppointment(payload) {
 }
 
 /**
- * Fetch appointments for a specific patient.
- * @param {string} patientId - Patient MongoDB _id.
- * @returns {Promise<{ success: boolean, appointments: object[] }>}
- */
-export async function getPatientAppointments(patientId) {
-  return api(`/appointments/patient/${patientId}`);
-}
-
-/**
  * Fetch appointments for the currently logged-in patient.
- * Uses the patientId stored in localStorage after booking.
+ * Uses the /api/appointments/me endpoint.
  * @returns {Promise<{ success: boolean, appointments: object[] }>}
  */
 export async function getMyAppointments() {
-  const patientId = localStorage.getItem('patientId');
-  if (!patientId) {
-    return { success: true, appointments: [] };
-  }
-  return getPatientAppointments(patientId);
+  return api('/appointments/me');
 }
 
 /**

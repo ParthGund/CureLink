@@ -37,3 +37,4 @@ function sendError(res, error, fallbackMessage) {
 }
 
 module.exports = { httpError, sendError };
+

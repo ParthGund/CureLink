@@ -77,7 +77,6 @@ export default function BookAppointment() {
         timeSlot: selectedSlot,
         reason: patient.reasonForVisit,
       });
-      localStorage.setItem("patientId", result.patient._id);
       navigate("/patient/appointments");
     } catch (err) {
       setError(err.message || "Failed to book appointment. Please try again.");

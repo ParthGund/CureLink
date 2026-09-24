@@ -4,7 +4,6 @@ const { protect, authorize } = require("../middleware/authMiddleware");
 const {
   getDoctors,
   getDoctorById,
-  createDoctor,
   getMyProfile,
   updateMyProfile,
 } = require("../controllers/doctorController");
@@ -42,8 +41,6 @@ router.get("/:id", protect, getDoctorById);
 router.get("/:id/slots", protect, getAvailableSlots);
 router.get("/:id/availability", protect, getAvailability);
 
-// Admin-only doctor creation
-router.post("/", protect, authorize("admin"), createDoctor);
 
 module.exports = router;
-
+

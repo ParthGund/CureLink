@@ -30,18 +30,6 @@ const getDoctorById = async (req, res) => {
   }
 };
 
-const createDoctor = async (req, res) => {
-  try {
-    const doctor = await Doctor.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      doctor,
-    });
-  } catch (error) {
-    sendError(res, error, "Failed to create doctor.");
-  }
-};
 
 const getMyProfile = async (req, res) => {
   try {
@@ -181,7 +169,6 @@ const getAvailableSlots = async (req, res) => {
 module.exports = {
   getDoctors,
   getDoctorById,
-  createDoctor,
   getMyProfile,
   updateMyProfile,
   getAvailableSlots,

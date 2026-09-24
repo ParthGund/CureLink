@@ -11,7 +11,7 @@ const patientSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer_not_to_say"],
     },
     reasonForVisit: { type: String, trim: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, sparse: true },
   },
   { timestamps: true }
 );

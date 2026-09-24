@@ -199,26 +199,13 @@ const getAllPatients = async (req, res) => {
  * Remove a patient user record.
  */
 const deletePatient = async (req, res) => {
-  try {
-    const user = await User.findOneAndDelete({
-      _id: req.params.id,
-      role: 'patient',
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Patient not found.',
-      });
-    }
-
-    res.json({ success: true, message: 'Patient removed successfully.' });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete patient.',
-    });
-  }
+  // Hard deletion is disabled to prevent accidental destructive cascading and
+  // leaving orphaned medical/appointment records.
+  // TODO: Implement a proper data-retention policy and soft-delete/deactivation.
+  return res.status(501).json({
+    success: false,
+    message: 'Hard deletion of patients is disabled to preserve medical history. Deactivation will be supported in a future update.',
+  });
 };
 
 // ── Appointments ───────────────────────────────────────────────
@@ -250,11 +237,12 @@ const getAllAppointments = async (req, res) => {
 const updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    const validStatuses = ['upcoming', 'completed', 'cancelled'];
 
-    if (!status) {
+    if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'status is required.',
+        message: 'Invalid status. Allowed values are: upcoming, completed, cancelled.',
       });
     }
 

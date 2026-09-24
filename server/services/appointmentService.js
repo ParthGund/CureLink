@@ -3,6 +3,8 @@ const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const { httpError } = require('../utils/httpError');
+const scheduleService = require('./scheduleService');
+const { toIsoDate } = require('../utils/timeUtils');
 
 /**
  * Get the Patient document linked to an authenticated user.
@@ -11,28 +13,7 @@ const { httpError } = require('../utils/httpError');
  * @returns {Promise<object|null>} Patient document or null.
  */
 async function getPatientForUser(userId) {
-  let patient = await Patient.findOne({ userId });
-
-  if (!patient) {
-    // Fallback: try to link an orphan Patient by matching email.
-    // This handles Patient documents created before the userId link was enforced.
-    const User = require('../models/User');
-    const user = await User.findById(userId).select('email');
-
-    if (user && user.email) {
-      patient = await Patient.findOne({
-        email: user.email.toLowerCase(),
-        userId: null,
-      });
-
-      if (patient) {
-        patient.userId = userId;
-        await patient.save();
-      }
-    }
-  }
-
-  return patient;
+  return Patient.findOne({ userId });
 }
 
 /**
@@ -127,16 +108,11 @@ async function bookAppointment(user, { doctorId, date, timeSlot, reason, patient
   const dayEnd = new Date(appointmentDate);
   dayEnd.setUTCHours(23, 59, 59, 999);
 
-  // Check for clash
-  const clash = await Appointment.findOne({
-    doctor: doctorId,
-    date: { $gte: dayStart, $lte: dayEnd },
-    timeSlot,
-    status: 'upcoming',
-  });
+  const isoDate = toIsoDate(appointmentDate);
+  const availableLabels = await scheduleService.getAvailableLabelsForDate(doctorId, isoDate);
 
-  if (clash) {
-    throw httpError(409, 'This slot was just booked. Please choose another.');
+  if (!availableLabels.includes(timeSlot)) {
+    throw httpError(400, 'The requested time slot is invalid, unavailable, or does not exist for this date.');
   }
 
   // Create appointment

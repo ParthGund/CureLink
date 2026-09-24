@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { validateRegistration, validateLogin } = require('../validators/authValidator');
 
 /**
  * @desc    Register a new patient account
@@ -8,16 +9,20 @@ const generateToken = require('../utils/generateToken');
  */
 const registerPatient = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { valid, errors } = validateRegistration(req.body);
 
-    if (!name || !email || !password) {
+    if (!valid) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password.',
+        message: errors[0],
+        errors,
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const { name, email, password } = req.body;
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: trimmedEmail });
 
     if (existingUser) {
       return res.status(409).json({
@@ -26,20 +31,20 @@ const registerPatient = async (req, res) => {
       });
     }
 
-    const assignedRole = role === 'doctor' || role === 'admin' ? role : 'patient';
-
+    // Public registration ALWAYS creates a patient.
+    // Admin and doctor accounts are created through controlled server-side mechanisms.
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: trimmedEmail,
       password,
-      role: assignedRole,
+      role: 'patient',
     });
 
     generateToken(res, user._id, user.role);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Account created successfully.',
       user: {
         id: user._id,
         name: user.name,
@@ -62,14 +67,17 @@ const registerPatient = async (req, res) => {
  */
 const loginPatient = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { valid, errors } = validateLogin(req.body);
 
-    if (!email || !password) {
+    if (!valid) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password.',
+        message: errors[0],
+        errors,
       });
     }
+
+    const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select('+password');
 
@@ -89,11 +97,10 @@ const loginPatient = async (req, res) => {
       });
     }
 
-    const token = generateToken(res, user._id, user.role);
+    generateToken(res, user._id, user.role);
 
     res.status(200).json({
       success: true,
-      token,
       user: {
         id: user._id,
         name: user.name,

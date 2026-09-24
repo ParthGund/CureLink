@@ -1,8 +1,9 @@
-const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
+const { validateDoctorCreation } = require('../validators/doctorValidator');
 
 // ── Stats ──────────────────────────────────────────────────────
 
@@ -33,7 +34,6 @@ const getPlatformStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch platform stats.',
-      error: error.message,
     });
   }
 };
@@ -55,7 +55,6 @@ const getAllDoctors = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch doctors.',
-      error: error.message,
     });
   }
 };
@@ -63,73 +62,84 @@ const getAllDoctors = async (req, res) => {
 /**
  * POST /api/admin/doctors
  * Create a User (role: doctor) and a linked Doctor profile.
+ * Uses a MongoDB transaction so both documents succeed or neither does.
  */
 const createDoctor = async (req, res) => {
-  try {
-    const {
-      name,
-      email,
-      password,
-      specialization,
-      experience,
-      availableDays,
-      workingHours,
-    } = req.body;
-
-    if (!name || !email || !password || !specialization) {
-      return res.status(400).json({
-        success: false,
-        message: 'name, email, password, and specialization are required.',
-      });
-    }
-
-    // Prevent duplicate email in User collection
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'A user with this email already exists.',
-      });
-    }
-
-    // Hash the password explicitly (the pre-save hook would also hash,
-    // but being explicit keeps the controller self-documenting).
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create User record
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: 'doctor',
+  // Validate input
+  const { valid, errors } = validateDoctorCreation(req.body);
+  if (!valid) {
+    return res.status(400).json({
+      success: false,
+      message: errors[0],
+      errors,
     });
+  }
+
+  const {
+    name,
+    email,
+    password,
+    specialization,
+    experience,
+    availableDays,
+    workingHours,
+  } = req.body;
+
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // Check for duplicate email before starting the transaction
+  const existingUser = await User.findOne({ email: trimmedEmail });
+  if (existingUser) {
+    return res.status(409).json({
+      success: false,
+      message: 'A user with this email already exists.',
+    });
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    // Create User record within the transaction.
+    // Password hashing is handled by the User model's pre-save hook.
+    const [user] = await User.create([{
+      name: name.trim(),
+      email: trimmedEmail,
+      password,
+      role: 'doctor',
+    }], { session });
 
     // Build Doctor profile fields
     const doctorFields = {
       user: user._id,
-      name,
-      email,
-      specialization,
+      name: name.trim(),
+      email: trimmedEmail,
+      specialization: specialization.trim(),
     };
 
     if (experience !== undefined) doctorFields.experience = experience;
     if (availableDays) doctorFields.workingDays = availableDays;
     if (workingHours) doctorFields.workingHours = workingHours;
 
-    const doctor = await Doctor.create(doctorFields);
+    const [doctor] = await Doctor.create([doctorFields], { session });
+
+    await session.commitTransaction();
 
     res.status(201).json({
       success: true,
       doctor,
-      message: 'Doctor created successfully',
+      message: 'Doctor created successfully.',
     });
   } catch (error) {
+    await session.abortTransaction();
+
     res.status(500).json({
       success: false,
       message: 'Failed to create doctor.',
-      error: error.message,
     });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -154,12 +164,11 @@ const deleteDoctor = async (req, res) => {
 
     await Doctor.findByIdAndDelete(doctor._id);
 
-    res.json({ success: true, message: 'Doctor removed successfully' });
+    res.json({ success: true, message: 'Doctor removed successfully.' });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to delete doctor.',
-      error: error.message,
     });
   }
 };
@@ -181,7 +190,6 @@ const getAllPatients = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch patients.',
-      error: error.message,
     });
   }
 };
@@ -204,12 +212,11 @@ const deletePatient = async (req, res) => {
       });
     }
 
-    res.json({ success: true, message: 'Patient removed successfully' });
+    res.json({ success: true, message: 'Patient removed successfully.' });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to delete patient.',
-      error: error.message,
     });
   }
 };
@@ -232,7 +239,6 @@ const getAllAppointments = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch appointments.',
-      error: error.message,
     });
   }
 };
@@ -273,7 +279,6 @@ const updateAppointmentStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update appointment status.',
-      error: error.message,
     });
   }
 };

@@ -174,10 +174,7 @@ const getAvailableSlots = async (req, res) => {
       slots: availableSlots,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch slots",
-      error: error.message,
-    });
+    sendError(res, error, "Failed to fetch slots.");
   }
 };
 

@@ -11,8 +11,8 @@ import Doctors from '../pages/patient/Doctors';
 import DoctorProfile from '../pages/patient/DoctorProfile';
 import Profile from '../pages/shared/Profile';
 import RoleLayout from '../components/layout/RoleLayout';
-import RoleDashboard from '../pages/shared/RoleDashboard';
 import ResourcePage from '../pages/shared/ResourcePage';
+import DoctorDashboard from '../pages/doctor/DoctorDashboard';
 import DoctorOwnProfile from '../pages/doctor/DoctorProfile';
 import Schedule from '../pages/doctor/Schedule';
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -45,7 +45,7 @@ export default function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
         <Route path="/doctor" element={<RoleLayout role="doctor" />}>
-          <Route path="dashboard" element={<RoleDashboard role="Doctor" />} />
+          <Route path="dashboard" element={<DoctorDashboard />} />
           <Route path="schedule" element={<Schedule />} />
           <Route path="appointments" element={<ResourcePage title="Appointments" description="Review consultations scheduled with your patients." emptyTitle="No appointments yet" emptyDescription="Scheduled consultations will appear here." />} />
           <Route path="consultations" element={<ResourcePage title="Consultations" description="Record and review authorised patient consultations." emptyTitle="No consultations yet" emptyDescription="Your consultation records will appear here." />} />

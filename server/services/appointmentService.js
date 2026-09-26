@@ -247,11 +247,47 @@ async function verifyAppointmentAccess(appointment, user) {
   throw httpError(403, 'You do not have access to this appointment.');
 }
 
+/**
+ * Get the Doctor document linked to an authenticated user.
+ *
+ * @param {string} userId - User._id from req.user.
+ * @returns {Promise<object|null>} Doctor document or null.
+ */
+async function getDoctorForUser(userId) {
+  return Doctor.findOne({ user: userId });
+}
+
+/**
+ * Get appointments for the authenticated doctor.
+ *
+ * The doctor identity is derived from req.user — the client cannot
+ * specify which doctor's appointments to fetch.
+ *
+ * @param {string} userId - User._id from req.user.
+ * @returns {Promise<object[]>} Array of populated appointment documents.
+ */
+async function getDoctorAppointments(userId) {
+  const doctor = await getDoctorForUser(userId);
+
+  if (!doctor) {
+    throw httpError(
+      404,
+      'Your doctor profile has not been set up yet. Please contact an administrator.'
+    );
+  }
+
+  return Appointment.find({ doctor: doctor._id })
+    .populate('patient', 'fullName email phone')
+    .populate('doctor', 'name specialization')
+    .sort({ date: -1, timeSlot: 1 });
+}
+
 module.exports = {
   getPatientForUser,
   getOrCreatePatient,
   bookAppointment,
   getMyAppointments,
+  getDoctorAppointments,
   getAppointmentById,
   cancelAppointment,
   verifyAppointmentAccess,

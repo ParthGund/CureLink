@@ -166,10 +166,41 @@ const getAvailableSlots = async (req, res) => {
   }
 };
 
+const getMyPatients = async (req, res) => {
+  try {
+    const patients = await doctorService.getDoctorPatients(req.user._id);
+
+    res.status(200).json({
+      success: true,
+      patients,
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to fetch patients.");
+  }
+};
+
+const getMyPatientById = async (req, res) => {
+  try {
+    const patient = await doctorService.getDoctorPatientById(
+      req.user._id,
+      req.params.patientId
+    );
+
+    res.status(200).json({
+      success: true,
+      patient,
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to fetch patient details.");
+  }
+};
+
 module.exports = {
   getDoctors,
   getDoctorById,
   getMyProfile,
   updateMyProfile,
   getAvailableSlots,
+  getMyPatients,
+  getMyPatientById,
 };

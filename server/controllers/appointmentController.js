@@ -136,10 +136,25 @@ const cancelAppointment = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/appointments/doctor/me
+ * Get appointments for the currently authenticated doctor.
+ * Doctor is derived from req.user — no client-supplied ID needed.
+ */
+const getDoctorAppointments = async (req, res) => {
+  try {
+    const appointments = await appointmentService.getDoctorAppointments(req.user._id);
+    res.status(200).json({ success: true, appointments });
+  } catch (error) {
+    sendError(res, error, 'Failed to fetch appointments.');
+  }
+};
+
 module.exports = {
   createAppointment,
   getMyAppointments,
   getPatientAppointments,
+  getDoctorAppointments,
   getAppointmentById,
   cancelAppointment,
 };

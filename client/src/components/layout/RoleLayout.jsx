@@ -6,6 +6,7 @@ const roleNavigation = {
   doctor: [
     ['Dashboard', 'dashboard'],
     ['My Schedule', 'schedule'],
+    ['Appointments', 'appointments'],
     ['Consultations', 'consultations'],
     ['Patients', 'patients'],
   ],

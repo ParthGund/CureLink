@@ -3287,3 +3287,388 @@ select.modal-input {
   color: var(--teal) !important;
   transform: translateX(-3px);
 }
+
+/* ── Doctor Appointments Page ──────────────────────────────── */
+
+/* Count badge in page heading */
+.dr-apt-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  margin-left: 10px;
+  border-radius: 7px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 13px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* Controls wrapper */
+.dr-apt-controls {
+  margin-top: 32px;
+}
+
+/* Tab bar */
+.dr-apt-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.dr-apt-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--slate);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.dr-apt-tab:hover {
+  color: var(--navy);
+}
+.dr-apt-tab--active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+.dr-apt-tab__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--soft-blue);
+  color: var(--slate);
+  font-size: 11px;
+  font-weight: 700;
+}
+.dr-apt-tab--active .dr-apt-tab__count {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+}
+
+/* Filter row */
+.dr-apt-filter-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Search bar */
+.dr-apt-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--slate);
+}
+.dr-apt-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--navy);
+  font-size: 14px;
+}
+.dr-apt-search input::placeholder {
+  color: #94A3B8;
+}
+
+/* Error banner */
+.dr-apt-error {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border: 1px solid #FEE2E2;
+  border-radius: 8px;
+  background: #FEF2F2;
+  color: #DC2626;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* Table card */
+.dr-apt-table-card {
+  margin-top: 20px;
+}
+
+/* Table */
+.dr-apt-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dr-apt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.dr-apt-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dr-apt-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--navy);
+  vertical-align: middle;
+}
+.dr-apt-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.dr-apt-table tbody tr:hover {
+  background: #FAFCFF;
+}
+.dr-apt-table__actions-head {
+  text-align: right;
+}
+
+/* Patient cell with avatar */
+.dr-apt-table__patient-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.dr-apt-table__avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft-blue);
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dr-apt-table__patient-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dr-apt-table__patient-name {
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-apt-table__patient-email {
+  font-size: 13px;
+  color: var(--slate);
+}
+.dr-apt-table__reason-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dr-apt-table__muted {
+  color: #94A3B8;
+}
+
+/* Status badges — semantic colours from design.md */
+.dr-apt-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.dr-apt-status--upcoming {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+.dr-apt-status--completed {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+.dr-apt-status--cancelled {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* View button */
+.dr-apt-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  float: right;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.dr-apt-view-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.dr-apt-view-btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* Empty state in table */
+.dr-apt-table__empty-cell {
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+.dr-apt-table__empty-cell .empty-state {
+  min-height: 320px;
+}
+
+/* ── Detail modal refinements ─────────────────────────────── */
+.dr-apt-detail {
+  width: min(100%, 560px);
+}
+.dr-apt-detail__body {
+  padding: 0;
+}
+.dr-apt-detail__status-row {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.dr-apt-detail__section {
+  padding: 20px 24px 0;
+}
+.dr-apt-detail__section:last-of-type {
+  padding-bottom: 20px;
+}
+.dr-apt-detail__section-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+}
+.dr-apt-detail__fields {
+  margin: 0;
+  padding: 0;
+}
+.dr-apt-detail__row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  min-height: 38px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.dr-apt-detail__row:last-child {
+  border-bottom: 0;
+}
+.dr-apt-detail__row dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.dr-apt-detail__row dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+  word-break: break-word;
+}
+.dr-apt-detail__reason {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #F8FAFC;
+  color: var(--navy);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dr-apt-detail__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.dr-apt-detail__cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 20px;
+  min-height: 40px;
+  border: 1px solid #FEE2E2;
+  border-radius: 8px;
+  background: #FEF2F2;
+  color: #DC2626;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.dr-apt-detail__cancel-btn:hover:not(:disabled) {
+  background: #FEE2E2;
+}
+.dr-apt-detail__cancel-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Loading overlay for detail */
+.dr-apt-detail-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+  color: var(--slate);
+  font-size: 15px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dr-apt-tabs {
+    overflow-x: auto;
+    gap: 0;
+  }
+  .dr-apt-tab {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .dr-apt-filter-row {
+    flex-direction: column;
+  }
+  .dr-apt-table__reason-cell {
+    max-width: 140px;
+  }
+  .dr-apt-detail__row {
+    grid-template-columns: 90px 1fr;
+  }
+}

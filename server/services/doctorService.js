@@ -161,9 +161,80 @@ async function updateOwnProfile(userId, input) {
   return Doctor.findById(doctor._id).select(OWN_PROFILE_FIELDS);
 }
 
+const Appointment = require("../models/Appointment");
+const Patient = require("../models/Patient");
+
+/**
+ * Get all patients associated with the authenticated doctor through appointments.
+ *
+ * @param {string} userId - User document _id.
+ * @returns {Promise<object[]>} Array of patient objects with embedded appointment history.
+ */
+async function getDoctorPatients(userId) {
+  const doctor = await getDoctorForUser(userId);
+
+  const appointments = await Appointment.find({ doctor: doctor._id })
+    .populate("patient", "fullName email phone dateOfBirth gender")
+    .sort({ date: -1 });
+
+  const patientMap = new Map();
+
+  for (const apt of appointments) {
+    if (!apt.patient) continue;
+    const patientId = apt.patient._id.toString();
+    if (!patientMap.has(patientId)) {
+      patientMap.set(patientId, {
+        ...apt.patient.toObject(),
+        appointments: [],
+      });
+    }
+    patientMap.get(patientId).appointments.push({
+      _id: apt._id,
+      date: apt.date,
+      timeSlot: apt.timeSlot,
+      status: apt.status,
+      reason: apt.reason,
+    });
+  }
+
+  return Array.from(patientMap.values());
+}
+
+/**
+ * Get a specific patient by ID, ensuring the doctor has authorization.
+ *
+ * @param {string} userId - User document _id.
+ * @param {string} patientId - Patient document _id.
+ * @returns {Promise<object>} Patient object with embedded appointment history.
+ */
+async function getDoctorPatientById(userId, patientId) {
+  const doctor = await getDoctorForUser(userId);
+
+  const appointments = await Appointment.find({
+    doctor: doctor._id,
+    patient: patientId,
+  }).sort({ date: -1 });
+
+  if (appointments.length === 0) {
+    throw httpError(403, "You do not have authorization to view this patient.");
+  }
+
+  const patient = await Patient.findById(patientId);
+  if (!patient) {
+    throw httpError(404, "Patient not found.");
+  }
+
+  return {
+    ...patient.toObject(),
+    appointments,
+  };
+}
+
 module.exports = {
   listDoctors,
   getPublicDoctorById,
   getDoctorForUser,
   updateOwnProfile,
+  getDoctorPatients,
+  getDoctorPatientById,
 };

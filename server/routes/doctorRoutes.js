@@ -6,6 +6,8 @@ const {
   getDoctorById,
   getMyProfile,
   updateMyProfile,
+  getMyPatients,
+  getMyPatientById,
 } = require("../controllers/doctorController");
 const {
   createSlots,
@@ -35,6 +37,9 @@ router.delete('/me/slots/:slotId', protect, authorize('doctor'), deleteSlot);
 
 router.get("/me/schedule", protect, authorize("doctor"), getSchedule);
 router.put("/me/schedule", protect, authorize("doctor"), updateSchedule);
+
+router.get("/me/patients", protect, authorize("doctor"), getMyPatients);
+router.get("/me/patients/:patientId", protect, authorize("doctor"), getMyPatientById);
 
 // Public doctor detail and availability (any authenticated role)
 router.get("/:id", protect, getDoctorById);

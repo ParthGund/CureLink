@@ -148,3 +148,22 @@ export async function cancelMyDay(date) {
   const data = await api('/doctors/me/slots/cancel-day', { method: 'POST', body: JSON.stringify({ date }) });
   return { cancelled: data.cancelled, keptBooked: data.keptBooked, message: data.message };
 }
+
+/**
+ * Fetch patients associated with the logged-in doctor.
+ * @returns {Promise<object[]>} Array of patient objects.
+ */
+export async function getMyPatients() {
+  const data = await api('/doctors/me/patients');
+  return data.patients;
+}
+
+/**
+ * Fetch a single patient by ID for the logged-in doctor.
+ * @param {string} patientId - Patient MongoDB _id.
+ * @returns {Promise<object>} Patient object with appointments array.
+ */
+export async function getMyPatientById(patientId) {
+  const data = await api(`/doctors/me/patients/${patientId}`);
+  return data.patient;
+}

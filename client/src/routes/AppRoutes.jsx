@@ -12,9 +12,12 @@ import DoctorProfile from '../pages/patient/DoctorProfile';
 import Profile from '../pages/shared/Profile';
 import RoleLayout from '../components/layout/RoleLayout';
 import ResourcePage from '../pages/shared/ResourcePage';
+import DoctorAppointments from '../pages/doctor/DoctorAppointments';
 import DoctorDashboard from '../pages/doctor/DoctorDashboard';
 import DoctorOwnProfile from '../pages/doctor/DoctorProfile';
 import Schedule from '../pages/doctor/Schedule';
+import DoctorPatients from '../pages/doctor/DoctorPatients';
+import DoctorPatientProfile from '../pages/doctor/DoctorPatientProfile';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminDoctors from '../pages/admin/AdminDoctors';
 import AdminPatients from '../pages/admin/AdminPatients';
@@ -47,9 +50,10 @@ export default function AppRoutes() {
         <Route path="/doctor" element={<RoleLayout role="doctor" />}>
           <Route path="dashboard" element={<DoctorDashboard />} />
           <Route path="schedule" element={<Schedule />} />
-          <Route path="appointments" element={<ResourcePage title="Appointments" description="Review consultations scheduled with your patients." emptyTitle="No appointments yet" emptyDescription="Scheduled consultations will appear here." />} />
+          <Route path="appointments" element={<DoctorAppointments />} />
           <Route path="consultations" element={<ResourcePage title="Consultations" description="Record and review authorised patient consultations." emptyTitle="No consultations yet" emptyDescription="Your consultation records will appear here." />} />
-          <Route path="patients" element={<ResourcePage title="Patients" description="View patients assigned to your care." emptyTitle="No patients to show" emptyDescription="Your authorised patients will appear here." />} />
+          <Route path="patients" element={<DoctorPatients />} />
+          <Route path="patients/:patientId" element={<DoctorPatientProfile />} />
           <Route path="profile" element={<DoctorOwnProfile />} />
         </Route>
       </Route>

@@ -49,3 +49,21 @@ export async function getMyAppointments() {
 export async function cancelAppointment(id) {
   return api(`/appointments/${id}/cancel`, { method: 'PUT' });
 }
+
+/**
+ * Fetch appointments for the currently logged-in doctor.
+ * Uses the /api/appointments/doctor/me endpoint.
+ * @returns {Promise<{ success: boolean, appointments: object[] }>}
+ */
+export async function getDoctorAppointments() {
+  return api('/appointments/doctor/me');
+}
+
+/**
+ * Fetch a single appointment by ID.
+ * @param {string} id - Appointment MongoDB _id.
+ * @returns {Promise<{ success: boolean, appointment: object }>}
+ */
+export async function getAppointmentById(id) {
+  return api(`/appointments/${id}`);
+}

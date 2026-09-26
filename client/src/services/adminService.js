@@ -65,9 +65,9 @@ export async function getAppointments() {
 }
 
 /**
- * Update an appointment's status.
+ * Update an appointment's lifecycle status (admin only).
  * @param {string} id - Appointment MongoDB _id.
- * @param {string} status - New status ('cancelled' | 'completed' | 'upcoming').
+ * @param {'scheduled'|'confirmed'|'completed'|'cancelled'} status - New status.
  */
 export async function updateAppointmentStatus(id, status) {
   return api(`/admin/appointments/${id}/status`, {

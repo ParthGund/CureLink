@@ -1,13 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Search, CalendarCheck, ChevronDown } from 'lucide-react';
+import { Search, CalendarCheck, ChevronDown, AlertTriangle } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
-import { getAppointments, updateAppointmentStatus } from '../../services/adminService';
+import { getAppointments, getDoctors, updateAppointmentStatus } from '../../services/adminService';
 import { useToast } from '../../context/ToastContext';
 
 const SKELETON_ROWS = 5;
 
-const STATUS_OPTIONS = ['all', 'upcoming', 'completed', 'cancelled'];
+const STATUS_OPTIONS = ['all', 'scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming'];
 
 /**
  * Format an ISO date string into a readable short date.
@@ -23,32 +23,113 @@ function formatDate(iso) {
   });
 }
 
+/**
+ * Inline cancel-confirmation modal.
+ * Shown when the admin clicks "Cancel" on an appointment.
+ */
+function CancelConfirmModal({ appointment, onConfirm, onDismiss }) {
+  if (!appointment) return null;
+
+  const patientName =
+    appointment.patient?.fullName || appointment.patient?.name || 'this patient';
+  const doctorName = appointment.doctor?.name || 'the doctor';
+
+  return (
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-modal-title"
+      onClick={onDismiss}
+    >
+      <div
+        className="modal-panel modal-panel--narrow"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cancel-modal-body">
+          <span className="cancel-modal-icon" aria-hidden="true">
+            <AlertTriangle size={28} />
+          </span>
+          <h2 id="cancel-modal-title" className="cancel-modal-title">
+            Cancel appointment?
+          </h2>
+          <p className="cancel-modal-desc">
+            You are about to cancel the appointment for{' '}
+            <strong>{patientName}</strong> with <strong>Dr. {doctorName}</strong> on{' '}
+            <strong>{formatDate(appointment.date)}</strong> at{' '}
+            <strong>{appointment.timeSlot || '—'}</strong>. This action cannot be undone.
+          </p>
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={onDismiss}
+            >
+              Keep appointment
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={onConfirm}
+            >
+              Yes, cancel it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminAppointments() {
   const toast = useToast();
+
   const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Filter state
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [doctorFilter, setDoctorFilter] = useState('all');
+
+  // In-flight status update tracking
   const [updatingId, setUpdatingId] = useState(null);
 
-  function fetchAppointments() {
+  // Cancel confirmation modal target
+  const [cancelTarget, setCancelTarget] = useState(null);
+
+  // ── Data fetching ──────────────────────────────────────────────
+
+  function fetchData() {
     setLoading(true);
     setError('');
-    getAppointments()
-      .then((data) => setAppointments(data ?? []))
+    Promise.all([getAppointments(), getDoctors()])
+      .then(([appts, docs]) => {
+        setAppointments(appts ?? []);
+        setDoctors(docs ?? []);
+      })
       .catch((err) => setError(err.message || 'Failed to load appointments.'))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { fetchAppointments(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  // Client-side filter: search + status
+  // ── Client-side filtering ──────────────────────────────────────
+
   const filtered = useMemo(() => {
     let result = appointments;
 
     if (statusFilter !== 'all') {
       result = result.filter((a) => a.status === statusFilter);
+    }
+
+    if (doctorFilter !== 'all') {
+      result = result.filter((a) => {
+        const docId = a.doctor?._id || a.doctor;
+        return String(docId) === doctorFilter;
+      });
     }
 
     if (search.trim()) {
@@ -66,31 +147,60 @@ export default function AdminAppointments() {
     }
 
     return result;
-  }, [appointments, search, statusFilter]);
+  }, [appointments, search, statusFilter, doctorFilter]);
 
-  async function handleStatusChange(appointment, newStatus) {
-    if (appointment.status === newStatus) return;
+  // ── Status update handlers ─────────────────────────────────────
 
-    setUpdatingId(appointment._id);
+  async function applyStatusChange(appointmentId, newStatus) {
+    setUpdatingId(appointmentId);
     try {
-      await updateAppointmentStatus(appointment._id, newStatus);
-      // Update local state
+      await updateAppointmentStatus(appointmentId, newStatus);
       setAppointments((prev) =>
         prev.map((a) =>
-          a._id === appointment._id ? { ...a, status: newStatus } : a
+          a._id === appointmentId ? { ...a, status: newStatus } : a
         )
       );
-      toast.success('Appointment status updated');
+
+      if (newStatus === 'confirmed') {
+        toast.success('Appointment confirmed');
+      } else if (newStatus === 'completed') {
+        toast.success('Appointment marked as completed');
+      } else if (newStatus === 'cancelled') {
+        toast.error('Appointment cancelled');
+      } else {
+        toast.success('Appointment status updated');
+      }
     } catch (err) {
-      alert(err.message || 'Failed to update appointment status.');
+      toast.error(err.message || 'Failed to update appointment status.');
     } finally {
       setUpdatingId(null);
     }
   }
 
+  function handleConfirm(apt) {
+    applyStatusChange(apt._id, 'confirmed');
+  }
+
+  function handleComplete(apt) {
+    applyStatusChange(apt._id, 'completed');
+  }
+
+  function requestCancel(apt) {
+    setCancelTarget(apt);
+  }
+
+  function handleCancelConfirmed() {
+    if (!cancelTarget) return;
+    const id = cancelTarget._id;
+    setCancelTarget(null);
+    applyStatusChange(id, 'cancelled');
+  }
+
+  // ── Render ─────────────────────────────────────────────────────
+
   return (
     <div className="admin-appointments-page">
-      {/* ── Header ──────────────────────────────────────── */}
+      {/* ── Header ────────────────────────────────────────── */}
       <header className="page-heading page-heading--with-action">
         <div>
           <h1>
@@ -103,8 +213,9 @@ export default function AdminAppointments() {
         </div>
       </header>
 
-      {/* ── Filters ─────────────────────────────────────── */}
-      <div className="admin-filter-row">
+      {/* ── Filters ───────────────────────────────────────── */}
+      <div className="admin-filter-row admin-filter-row--triple">
+        {/* Search */}
         <div className="admin-search-bar admin-search-bar--flex">
           <Search size={18} aria-hidden="true" />
           <input
@@ -112,10 +223,32 @@ export default function AdminAppointments() {
             placeholder="Search by patient, doctor, or specialization…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search appointments"
           />
         </div>
+
+        {/* Doctor filter */}
         <div className="admin-status-filter">
           <select
+            id="admin-doctor-filter"
+            value={doctorFilter}
+            onChange={(e) => setDoctorFilter(e.target.value)}
+            aria-label="Filter by doctor"
+          >
+            <option value="all">All Doctors</option>
+            {doctors.map((doc) => (
+              <option key={doc._id} value={doc._id}>
+                {doc.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={16} className="admin-status-filter__icon" aria-hidden="true" />
+        </div>
+
+        {/* Status filter */}
+        <div className="admin-status-filter">
+          <select
+            id="admin-status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             aria-label="Filter by status"
@@ -132,7 +265,7 @@ export default function AdminAppointments() {
 
       {error && <p className="admin-error-banner">{error}</p>}
 
-      {/* ── Table ───────────────────────────────────────── */}
+      {/* ── Table ─────────────────────────────────────────── */}
       <Card className="admin-table-card">
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -166,6 +299,11 @@ export default function AdminAppointments() {
                   const doctorName = apt.doctor?.name || '—';
                   const specialization = apt.doctor?.specialization || '—';
                   const isUpdating = updatingId === apt._id;
+                  const isScheduledOrUpcoming =
+                    apt.status === 'scheduled' || apt.status === 'upcoming';
+                  const isConfirmed = apt.status === 'confirmed';
+                  const isFinal =
+                    apt.status === 'completed' || apt.status === 'cancelled';
 
                   return (
                     <tr key={apt._id}>
@@ -182,19 +320,47 @@ export default function AdminAppointments() {
                       <td>{formatDate(apt.date)}</td>
                       <td>{apt.timeSlot || '—'}</td>
                       <td>
-                        <span className={`admin-status-badge admin-status-badge--${apt.status}`}>
+                        <span
+                          className={`admin-status-badge admin-status-badge--${apt.status}`}
+                        >
                           {apt.status}
                         </span>
                       </td>
                       <td>
                         <div className="admin-apt-actions">
-                          {apt.status === 'upcoming' && (
+                          {/* Scheduled / Upcoming → Confirm + Cancel */}
+                          {isScheduledOrUpcoming && (
+                            <>
+                              <button
+                                className="admin-apt-action admin-apt-action--confirm"
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleConfirm(apt)}
+                                aria-label={`Confirm appointment for ${patientName}`}
+                              >
+                                {isUpdating ? '…' : 'Confirm'}
+                              </button>
+                              <button
+                                className="admin-apt-action admin-apt-action--cancel"
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => requestCancel(apt)}
+                                aria-label={`Cancel appointment for ${patientName}`}
+                              >
+                                {isUpdating ? '…' : 'Cancel'}
+                              </button>
+                            </>
+                          )}
+
+                          {/* Confirmed → Complete + Cancel */}
+                          {isConfirmed && (
                             <>
                               <button
                                 className="admin-apt-action admin-apt-action--complete"
                                 type="button"
                                 disabled={isUpdating}
-                                onClick={() => handleStatusChange(apt, 'completed')}
+                                onClick={() => handleComplete(apt)}
+                                aria-label={`Mark appointment for ${patientName} as completed`}
                               >
                                 {isUpdating ? '…' : 'Complete'}
                               </button>
@@ -202,17 +368,21 @@ export default function AdminAppointments() {
                                 className="admin-apt-action admin-apt-action--cancel"
                                 type="button"
                                 disabled={isUpdating}
-                                onClick={() => handleStatusChange(apt, 'cancelled')}
+                                onClick={() => requestCancel(apt)}
+                                aria-label={`Cancel appointment for ${patientName}`}
                               >
                                 {isUpdating ? '…' : 'Cancel'}
                               </button>
                             </>
                           )}
-                          {apt.status === 'completed' && (
-                            <span className="admin-apt-done">Done</span>
-                          )}
-                          {apt.status === 'cancelled' && (
-                            <span className="admin-apt-done admin-apt-done--cancelled">Cancelled</span>
+
+                          {/* Final states → read-only badge */}
+                          {isFinal && (
+                            <span
+                              className={`admin-apt-done${apt.status === 'cancelled' ? ' admin-apt-done--cancelled' : ''}`}
+                            >
+                              {apt.status === 'completed' ? 'Done' : 'Cancelled'}
+                            </span>
                           )}
                         </div>
                       </td>
@@ -224,9 +394,13 @@ export default function AdminAppointments() {
                   <td colSpan={7} className="admin-table__empty-cell">
                     <EmptyState
                       icon={CalendarCheck}
-                      title={search || statusFilter !== 'all' ? 'No matching appointments' : 'No appointments yet'}
+                      title={
+                        search || statusFilter !== 'all' || doctorFilter !== 'all'
+                          ? 'No matching appointments'
+                          : 'No appointments yet'
+                      }
                       description={
-                        search || statusFilter !== 'all'
+                        search || statusFilter !== 'all' || doctorFilter !== 'all'
                           ? 'Try adjusting your filters.'
                           : 'Appointments booked on the platform will appear here.'
                       }
@@ -238,6 +412,13 @@ export default function AdminAppointments() {
           </table>
         </div>
       </Card>
+
+      {/* ── Cancel confirmation modal ──────────────────────── */}
+      <CancelConfirmModal
+        appointment={cancelTarget}
+        onConfirm={handleCancelConfirmed}
+        onDismiss={() => setCancelTarget(null)}
+      />
     </div>
   );
 }

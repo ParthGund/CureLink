@@ -1,13 +1,26 @@
 import { CalendarDays, Clock, X } from 'lucide-react';
 
+/** Map from API status value to a human-readable label. */
+const STATUS_LABELS = {
+  upcoming:  'Upcoming',
+  scheduled: 'Scheduled',
+  confirmed: 'Confirmed',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
 /**
- * Displays a single appointment with doctor info, date, time, and status.
+ * Displays a single appointment with doctor info, date, time, status badge,
+ * reason, and a cancel request button for active appointments.
  *
  * @param {object}   props
- * @param {object}   props.appointment - Populated appointment document from the API.
- * @param {function} [props.onCancel]  - Called with appointment._id when the user cancels.
+ * @param {object}   props.appointment        - Populated appointment document.
+ * @param {function} [props.onCancelRequest]  - Called with the full appointment
+ *                                             object when the patient requests
+ *                                             cancellation. Parent is responsible
+ *                                             for showing a confirmation modal.
  */
-export default function AppointmentCard({ appointment, onCancel }) {
+export default function AppointmentCard({ appointment, onCancelRequest }) {
   const { doctor, date, appointmentDate, timeSlot, status, reason, _id } = appointment;
 
   const rawDate = appointmentDate || date;
@@ -20,9 +33,11 @@ export default function AppointmentCard({ appointment, onCancel }) {
       })
     : 'Date not available';
 
-  const doctorName = doctor?.name || 'Dr. Assigned';
+  const doctorName    = doctor?.name           || 'Dr. Assigned';
   const specialization = doctor?.specialization || 'General';
-  const statusLabel = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Scheduled';
+  const statusLabel   = STATUS_LABELS[status]  || (status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Scheduled');
+
+  const canCancel = (status === 'scheduled' || status === 'confirmed' || status === 'upcoming') && onCancelRequest;
 
   return (
     <div className="appointment-card">
@@ -43,20 +58,20 @@ export default function AppointmentCard({ appointment, onCancel }) {
         </span>
         <span className="appointment-card__detail">
           <Clock size={15} aria-hidden="true" />
-          {timeSlot}
+          {timeSlot || '—'}
         </span>
       </div>
 
       {reason && <p className="appointment-card__reason">{reason}</p>}
 
-      {status === 'upcoming' && onCancel && (
+      {canCancel && (
         <button
           type="button"
-          className="button button--text appointment-card__cancel"
-          onClick={() => onCancel(_id)}
+          className="appointment-card__cancel"
+          onClick={() => onCancelRequest(appointment)}
         >
           <X size={14} aria-hidden="true" />
-          Cancel
+          Cancel appointment
         </button>
       )}
     </div>

@@ -8,8 +8,8 @@ const appointmentSchema = new mongoose.Schema(
     timeSlot: { type: String, required: true },
     status: {
       type: String,
-      enum: ["upcoming", "completed", "cancelled"],
-      default: "upcoming",
+      enum: ["upcoming", "scheduled", "confirmed", "completed", "cancelled"],
+      default: "scheduled",
     },
     reason: { type: String, trim: true },
     notes: { type: String, trim: true },
@@ -19,7 +19,7 @@ const appointmentSchema = new mongoose.Schema(
 
 appointmentSchema.index(
   { doctor: 1, date: 1, timeSlot: 1 },
-  { unique: true, partialFilterExpression: { status: "upcoming" } }
+  { unique: true, partialFilterExpression: { status: { $in: ["upcoming", "scheduled", "confirmed"] } } }
 );
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

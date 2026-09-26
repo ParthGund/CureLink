@@ -18,7 +18,7 @@ const getPlatformStats = async (req, res) => {
         Doctor.countDocuments(),
         User.countDocuments({ role: 'patient' }),
         Appointment.countDocuments(),
-        Appointment.countDocuments({ status: 'upcoming' }),
+        Appointment.countDocuments({ status: { $in: ['upcoming', 'scheduled', 'confirmed'] } }),
       ]);
 
     res.json({
@@ -237,12 +237,12 @@ const getAllAppointments = async (req, res) => {
 const updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['upcoming', 'completed', 'cancelled'];
+    const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming'];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status. Allowed values are: upcoming, completed, cancelled.',
+        message: 'Invalid status. Allowed values are: scheduled, confirmed, completed, cancelled.',
       });
     }
 

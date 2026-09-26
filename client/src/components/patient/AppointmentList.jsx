@@ -4,17 +4,18 @@ import AppointmentCard from '../common/AppointmentCard';
  * Renders a vertical list of AppointmentCard components.
  *
  * @param {object}   props
- * @param {object[]} props.appointments - Array of populated appointment documents.
- * @param {function} [props.onCancel]   - Forwarded to each AppointmentCard for cancellation.
+ * @param {object[]} props.appointments      - Array of populated appointment documents.
+ * @param {function} [props.onCancelRequest] - Forwarded to each AppointmentCard.
+ *                                            Called with the full appointment object.
  */
-export default function AppointmentList({ appointments, onCancel }) {
+export default function AppointmentList({ appointments, onCancelRequest }) {
   return (
     <div className="appointment-list">
       {appointments.map((appointment) => (
         <AppointmentCard
           key={appointment._id}
           appointment={appointment}
-          onCancel={onCancel}
+          onCancelRequest={onCancelRequest}
         />
       ))}
     </div>

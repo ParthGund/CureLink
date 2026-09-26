@@ -34,10 +34,18 @@ const createAppointment = async (req, res) => {
 
     res.status(201).json(appointment);
   } catch (error) {
+    // Application-level conflict (explicit check in service)
+    if (error.status === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    // MongoDB unique-index race condition
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: 'This slot was just booked. Please choose another.',
+        message: 'This slot has already been booked by another patient. Please choose a different time.',
       });
     }
     sendError(res, error, 'Failed to book appointment.');

@@ -4,9 +4,11 @@ import { CalendarDays, ChevronLeft } from "lucide-react";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import { getDoctors, getAvailableSlots, bookAppointment } from "../../services/appointmentService";
+import { useToast } from "../../context/ToastContext";
 
 export default function BookAppointment() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep] = useState(0); // 0 = Patient Data, 1 = Slot Selection, 2 = Review
 
   const [patient, setPatient] = useState({
@@ -70,16 +72,19 @@ export default function BookAppointment() {
     setSubmitting(true);
     setError("");
     try {
-      const result = await bookAppointment({
+      await bookAppointment({
         patient,
         doctorId,
         date,
         timeSlot: selectedSlot,
         reason: patient.reasonForVisit,
       });
+      toast.success("Appointment booked successfully!");
       navigate("/patient/appointments");
     } catch (err) {
-      setError(err.message || "Failed to book appointment. Please try again.");
+      const msg = err.message || "Failed to book appointment. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }

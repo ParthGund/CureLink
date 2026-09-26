@@ -83,8 +83,8 @@ async function bookedLabelsInRange(doctorId, dateStart, dateEnd) {
   const appointments = await Appointment.find({
     doctor: doctorId,
     date: { $gte: dateStart, $lte: dateEnd },
-    status: "upcoming",
-  }).select("timeSlot date");
+    status: { $in: ['scheduled', 'confirmed', 'upcoming'] },
+  }).select('timeSlot date');
 
   // Build a set of "YYYY-MM-DD|label" keys for multi-date disambiguation.
   const set = new Set();

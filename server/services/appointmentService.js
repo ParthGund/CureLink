@@ -115,14 +115,28 @@ async function bookAppointment(user, { doctorId, date, timeSlot, reason, patient
     throw httpError(400, 'The requested time slot is invalid, unavailable, or does not exist for this date.');
   }
 
-  // Create appointment
+  // Explicit conflict check — catches race conditions before the unique index.
+  // A slot is considered taken if an active appointment already exists for this
+  // doctor / date / timeSlot combination.
+  const conflict = await Appointment.findOne({
+    doctor: doctorId,
+    date: dayStart,
+    timeSlot,
+    status: { $in: ['scheduled', 'confirmed', 'upcoming'] },
+  });
+
+  if (conflict) {
+    throw httpError(409, 'This slot has already been booked by another patient. Please choose a different time.');
+  }
+
+  // Create appointment with status 'scheduled' (enters lifecycle at the first active state)
   const appointment = await Appointment.create({
     patient: patient._id,
     doctor: doctorId,
     date: dayStart,
     timeSlot,
     reason: reason || '',
-    status: 'upcoming',
+    status: 'scheduled',
   });
 
   return appointment.populate(['patient', 'doctor']);

@@ -1,16 +1,27 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CalendarClock, History, Ban } from 'lucide-react';
+import { CalendarClock, X } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentList from '../../components/patient/AppointmentList';
 import { getMyAppointments, cancelAppointment } from '../../services/appointmentService';
+import { useToast } from '../../context/ToastContext';
+
+/** Statuses that count as "upcoming" (active, not yet completed). */
+const ACTIVE_STATUSES = new Set(['upcoming', 'scheduled', 'confirmed']);
+
+const TABS = [
+  { key: 'all',       label: 'All' },
+  { key: 'upcoming',  label: 'Upcoming' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'cancelled', label: 'Cancelled' },
+];
 
 /**
- * Normalises an appointment date (handles both `date` and `appointmentDate` fields)
- * and zeros out the time portion for accurate day-level comparison.
+ * Returns the normalised day timestamp for an appointment (local midnight).
+ * Handles both `date` and `appointmentDate` field names.
  */
-function getAppointmentDay(apt) {
+function getDay(apt) {
   const raw = apt.appointmentDate || apt.date;
   if (!raw) return 0;
   const d = new Date(raw);
@@ -18,48 +29,96 @@ function getAppointmentDay(apt) {
   return d.getTime();
 }
 
-export default function PatientAppointments() {
-  const [upcoming, setUpcoming] = useState([]);
-  const [past, setPast] = useState([]);
-  const [cancelled, setCancelled] = useState([]);
-  const [loading, setLoading] = useState(true);
+/**
+ * Inline cancel confirmation modal.
+ * Rendered by Appointments when the patient clicks "Cancel appointment".
+ */
+function CancelConfirmModal({ appointment, onConfirm, onDismiss, confirming }) {
+  if (!appointment) return null;
 
+  const doctorName = appointment.doctor?.name || 'the doctor';
+  const rawDate    = appointment.appointmentDate || appointment.date;
+  const dateLabel  = rawDate
+    ? new Date(rawDate).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      })
+    : 'this appointment';
+
+  return (
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-apt-title"
+      onClick={onDismiss}
+    >
+      <div
+        className="modal-panel modal-panel--narrow cancel-modal-body"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="cancel-modal-icon" aria-hidden="true">
+          <X size={32} />
+        </div>
+        <h2 id="cancel-apt-title" className="cancel-modal-title">
+          Cancel appointment?
+        </h2>
+        <p className="cancel-modal-desc">
+          Are you sure you want to cancel your appointment with{' '}
+          <strong>{doctorName}</strong> on <strong>{dateLabel}</strong>?
+          This action cannot be undone.
+        </p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={onDismiss}
+            disabled={confirming}
+          >
+            Keep appointment
+          </button>
+          <button
+            type="button"
+            className="button button--danger"
+            onClick={onConfirm}
+            disabled={confirming}
+          >
+            {confirming ? 'Cancelling…' : 'Yes, cancel it'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PatientAppointments() {
+  const toast = useToast();
+
+  const [allAppointments, setAllAppointments] = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [activeTab, setActiveTab]             = useState('all');
+
+  // Cancel modal state
+  const [cancelTarget,  setCancelTarget]  = useState(null);  // full appointment object
+  const [confirming,    setConfirming]    = useState(false);
+
+  // ── Fetch ─────────────────────────────────────────────────────
   const fetchAppointments = useCallback(() => {
     setLoading(true);
     getMyAppointments()
       .then((data) => {
         const all = data.appointments ?? [];
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayMs = today.getTime();
-
-        const upcomingList = [];
-        const pastList = [];
-        const cancelledList = [];
-
-        for (const apt of all) {
-          if (apt.status === 'cancelled') {
-            cancelledList.push(apt);
-          } else if (getAppointmentDay(apt) >= todayMs && apt.status !== 'completed') {
-            upcomingList.push(apt);
-          } else {
-            pastList.push(apt);
-          }
-        }
-
-        // Upcoming sorted ascending (soonest first)
-        upcomingList.sort((a, b) => getAppointmentDay(a) - getAppointmentDay(b));
-
-        setUpcoming(upcomingList);
-        setPast(pastList);
-        setCancelled(cancelledList);
+        // Sort: upcoming ascending (soonest first), then rest descending
+        all.sort((a, b) => {
+          const aActive = ACTIVE_STATUSES.has(a.status);
+          const bActive = ACTIVE_STATUSES.has(b.status);
+          if (aActive && bActive) return getDay(a) - getDay(b);
+          if (aActive) return -1;
+          if (bActive) return 1;
+          return getDay(b) - getDay(a);
+        });
+        setAllAppointments(all);
       })
-      .catch(() => {
-        setUpcoming([]);
-        setPast([]);
-        setCancelled([]);
-      })
+      .catch(() => setAllAppointments([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,13 +126,47 @@ export default function PatientAppointments() {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  async function handleCancel(id) {
+  // ── Filtering ─────────────────────────────────────────────────
+  const filteredAppointments = (() => {
+    switch (activeTab) {
+      case 'upcoming':
+        return allAppointments.filter((a) => ACTIVE_STATUSES.has(a.status));
+      case 'completed':
+        return allAppointments.filter((a) => a.status === 'completed');
+      case 'cancelled':
+        return allAppointments.filter((a) => a.status === 'cancelled');
+      default:
+        return allAppointments;
+    }
+  })();
+
+  // ── Tab empty state config ────────────────────────────────────
+  const emptyConfig = {
+    all:       { title: 'No appointments yet',       desc: 'Book your first appointment to get started.' },
+    upcoming:  { title: 'No upcoming appointments',  desc: 'Your scheduled consultations will appear here.' },
+    completed: { title: 'No completed visits',       desc: 'Past consultations will appear here after they complete.' },
+    cancelled: { title: 'No cancelled appointments', desc: 'Cancelled appointments will appear here.' },
+  };
+  const empty = emptyConfig[activeTab];
+
+  // ── Cancel flow ───────────────────────────────────────────────
+  function handleCancelRequest(appointment) {
+    setCancelTarget(appointment);
+  }
+
+  async function handleCancelConfirmed() {
+    if (!cancelTarget) return;
+    setConfirming(true);
     try {
-      await cancelAppointment(id);
+      await cancelAppointment(cancelTarget._id);
+      toast.error('Appointment cancelled.');
+      setCancelTarget(null);
       fetchAppointments();
-    } catch {
-      // Error is already handled by the API layer; refresh to show current state
-      fetchAppointments();
+    } catch (err) {
+      toast.error(err.message || 'Unable to cancel appointment. Please try again.');
+      setCancelTarget(null);
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -90,48 +183,54 @@ export default function PatientAppointments() {
         </div>
       </header>
 
-      <div className="two-column-page">
-        <section>
-          <h2>Upcoming Appointments</h2>
-          {loading ? (
-            <Card><p className="loading-text">Loading appointments…</p></Card>
-          ) : upcoming.length > 0 ? (
-            <AppointmentList appointments={upcoming} onCancel={handleCancel} />
-          ) : (
-            <Card>
-              <EmptyState
-                icon={CalendarClock}
-                title="No upcoming appointments"
-                description="Your scheduled consultations will appear here once booked."
-              />
-            </Card>
-          )}
-        </section>
-
-        <section>
-          <h2>Past Appointments</h2>
-          {loading ? (
-            <Card><p className="loading-text">Loading appointments…</p></Card>
-          ) : past.length > 0 ? (
-            <AppointmentList appointments={past} />
-          ) : (
-            <Card>
-              <EmptyState
-                icon={History}
-                title="No past appointments"
-                description="Your consultation history will appear here."
-              />
-            </Card>
-          )}
-        </section>
+      {/* ── Status tabs ─────────────────────────────────────── */}
+      <div className="apt-tab-bar" role="tablist" aria-label="Appointment filter">
+        {TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === key}
+            className={`apt-tab${activeTab === key ? ' apt-tab--active' : ''}`}
+            onClick={() => setActiveTab(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {!loading && cancelled.length > 0 && (
-        <section className="cancelled-section">
-          <h2>Cancelled Appointments</h2>
-          <AppointmentList appointments={cancelled} />
-        </section>
+      {/* ── Content ─────────────────────────────────────────── */}
+      {loading ? (
+        <Card className="apt-loading-card">
+          <p className="loading-text">Loading appointments…</p>
+        </Card>
+      ) : filteredAppointments.length > 0 ? (
+        <AppointmentList
+          appointments={filteredAppointments}
+          onCancelRequest={handleCancelRequest}
+        />
+      ) : (
+        <Card className="apt-empty-card">
+          <EmptyState
+            icon={CalendarClock}
+            title={empty.title}
+            description={empty.desc}
+            action={
+              activeTab === 'upcoming' || activeTab === 'all'
+                ? <Button to="/patient/appointments/book">Book an Appointment</Button>
+                : undefined
+            }
+          />
+        </Card>
       )}
+
+      {/* ── Cancel confirmation modal ────────────────────────── */}
+      <CancelConfirmModal
+        appointment={cancelTarget}
+        onConfirm={handleCancelConfirmed}
+        onDismiss={() => setCancelTarget(null)}
+        confirming={confirming}
+      />
     </div>
   );
 }

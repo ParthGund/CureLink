@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const consultationRoutes = require('./routes/consultationRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -59,6 +60,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/consultations', consultationRoutes);
 
 // Placeholder routes (to be replaced with real route modules)
 app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not yet implemented.' }));

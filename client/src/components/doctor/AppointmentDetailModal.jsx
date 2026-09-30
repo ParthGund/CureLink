@@ -1,4 +1,5 @@
-import { X, CalendarDays, Clock, User, Mail, Phone, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, CalendarDays, Clock, User, Mail, Phone, FileText, Stethoscope } from 'lucide-react';
 
 /**
  * Displays full appointment details in a modal overlay.
@@ -9,7 +10,8 @@ import { X, CalendarDays, Clock, User, Mail, Phone, FileText } from 'lucide-reac
  * @param {function} [props.onCancel]  - Called with appointment._id to cancel.
  * @param {boolean}  [props.cancelling] - Whether a cancel request is in progress.
  */
-export default function AppointmentDetailModal({ appointment, onClose, onCancel, cancelling }) {
+export default function AppointmentDetailModal({ appointment, onClose, onCancel, cancelling, consultation, onStartConsultation, starting }) {
+  const navigate = useNavigate();
   if (!appointment) return null;
 
   const { patient, date, timeSlot, status, reason, notes, createdAt, _id } = appointment;
@@ -122,6 +124,36 @@ export default function AppointmentDetailModal({ appointment, onClose, onCancel,
             >
               Close
             </button>
+            {/* Consultation entry point */}
+            {onStartConsultation && status !== 'cancelled' && !consultation && status !== 'completed' && (
+              <button
+                type="button"
+                className="button"
+                onClick={() => onStartConsultation(_id)}
+                disabled={starting}
+              >
+                <Stethoscope size={15} aria-hidden="true" />
+                {starting ? 'Starting…' : 'Start consultation'}
+              </button>
+            )}
+            {consultation && consultation.status === 'in_progress' && (
+              <button
+                type="button"
+                className="button"
+                onClick={() => navigate(`/doctor/consultations/${consultation._id}`)}
+              >
+                <Stethoscope size={15} aria-hidden="true" /> Continue consultation
+              </button>
+            )}
+            {consultation && consultation.status === 'completed' && (
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => navigate(`/doctor/consultations/${consultation._id}`)}
+              >
+                <Stethoscope size={15} aria-hidden="true" /> View consultation
+              </button>
+            )}
             {status === 'upcoming' && onCancel && (
               <button
                 type="button"

@@ -11,13 +11,14 @@ import Doctors from '../pages/patient/Doctors';
 import DoctorProfile from '../pages/patient/DoctorProfile';
 import Profile from '../pages/shared/Profile';
 import RoleLayout from '../components/layout/RoleLayout';
-import ResourcePage from '../pages/shared/ResourcePage';
 import DoctorAppointments from '../pages/doctor/DoctorAppointments';
 import DoctorDashboard from '../pages/doctor/DoctorDashboard';
 import DoctorOwnProfile from '../pages/doctor/DoctorProfile';
 import Schedule from '../pages/doctor/Schedule';
 import DoctorPatients from '../pages/doctor/DoctorPatients';
 import DoctorPatientProfile from '../pages/doctor/DoctorPatientProfile';
+import DoctorConsultations from '../pages/doctor/DoctorConsultations';
+import ConsultationWorkspace from '../pages/doctor/ConsultationWorkspace';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminDoctors from '../pages/admin/AdminDoctors';
 import AdminPatients from '../pages/admin/AdminPatients';
@@ -51,7 +52,8 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<DoctorDashboard />} />
           <Route path="schedule" element={<Schedule />} />
           <Route path="appointments" element={<DoctorAppointments />} />
-          <Route path="consultations" element={<ResourcePage title="Consultations" description="Record and review authorised patient consultations." emptyTitle="No consultations yet" emptyDescription="Your consultation records will appear here." />} />
+          <Route path="consultations" element={<DoctorConsultations />} />
+          <Route path="consultations/:consultationId" element={<ConsultationWorkspace />} />
           <Route path="patients" element={<DoctorPatients />} />
           <Route path="patients/:patientId" element={<DoctorPatientProfile />} />
           <Route path="profile" element={<DoctorOwnProfile />} />

@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CalendarClock, CalendarCheck, History, Ban, Search, ChevronDown, Eye } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentDetailModal from '../../components/doctor/AppointmentDetailModal';
 import { getDoctorAppointments, getAppointmentById, cancelAppointment } from '../../services/appointmentService';
+import { getDoctorConsultations, startConsultation } from '../../services/consultationService';
 import { useToast } from '../../context/ToastContext';
 
 const TAB_OPTIONS = [
@@ -43,6 +45,7 @@ function formatDate(iso) {
 
 export default function DoctorAppointments() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,6 +54,8 @@ export default function DoctorAppointments() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [consultationMap, setConsultationMap] = useState({});
+  const [starting, setStarting] = useState(false);
 
   const fetchAppointments = useCallback(() => {
     setLoading(true);
@@ -61,9 +66,22 @@ export default function DoctorAppointments() {
       .finally(() => setLoading(false));
   }, []);
 
+  const fetchConsultationMap = useCallback(() => {
+    getDoctorConsultations()
+      .then((data) => {
+        const map = {};
+        for (const c of data.consultations ?? []) {
+          if (c.appointment?._id) map[c.appointment._id] = c;
+        }
+        setConsultationMap(map);
+      })
+      .catch(() => { /* Failure must not break the page */ });
+  }, []);
+
   useEffect(() => {
     fetchAppointments();
-  }, [fetchAppointments]);
+    fetchConsultationMap();
+  }, [fetchAppointments, fetchConsultationMap]);
 
   // Categorise appointments
   const categorised = useMemo(() => {
@@ -141,6 +159,26 @@ export default function DoctorAppointments() {
       toast.error(err.message || 'Failed to cancel appointment.');
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleStartConsultation(appointmentId) {
+    setStarting(true);
+    try {
+      const data = await startConsultation(appointmentId);
+      navigate(`/doctor/consultations/${data.consultation._id}`);
+    } catch (err) {
+      if (err.status === 409) {
+        fetchConsultationMap();
+        const existing = consultationMap[appointmentId];
+        if (existing) {
+          navigate(`/doctor/consultations/${existing._id}`);
+          return;
+        }
+      }
+      toast.error(err.message || 'Failed to start consultation.');
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -313,6 +351,9 @@ export default function DoctorAppointments() {
           onClose={() => setSelectedAppointment(null)}
           onCancel={handleCancel}
           cancelling={cancelling}
+          consultation={consultationMap[selectedAppointment._id] || null}
+          onStartConsultation={handleStartConsultation}
+          starting={starting}
         />
       )}
 

@@ -4303,3 +4303,775 @@ select.modal-input {
     grid-template-columns: 90px 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Doctor Consultation Workspace
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout grid ────────────────────────────────────────────── */
+.dr-consult-grid {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  gap: 24px;
+  margin-top: 28px;
+  align-items: start;
+}
+.dr-consult-sidebar {
+  position: sticky;
+  top: 108px;
+}
+
+/* ── Patient panel ──────────────────────────────────────────── */
+.dr-consult-patient {
+  overflow: hidden;
+}
+.dr-consult-patient__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.dr-consult-patient__avatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dr-consult-patient__identity {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.dr-consult-patient__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  word-break: break-word;
+}
+.dr-consult-patient__email {
+  font-size: 13px;
+  color: var(--slate);
+  word-break: break-all;
+}
+.dr-consult-patient__pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dr-consult-patient__pill--progress {
+  background: #fff8e6;
+  color: #92660a;
+}
+.dr-consult-patient__pill--completed {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+}
+.dr-consult-patient__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 20px;
+}
+.dr-consult-patient__row {
+  display: grid;
+  grid-template-columns: 20px 64px 1fr;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.dr-consult-patient__row:last-child {
+  border-bottom: 0;
+}
+.dr-consult-patient__icon-tile {
+  color: var(--teal);
+  display: grid;
+  place-items: center;
+}
+.dr-consult-patient__row-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.dr-consult-patient__row-value {
+  font-size: 14px;
+  color: var(--navy);
+}
+.dr-consult-patient__reason {
+  display: flex;
+  gap: 8px;
+  padding: 14px 0;
+  color: var(--teal);
+}
+.dr-consult-patient__reason-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.dr-consult-patient__reason-text {
+  margin: 3px 0 0;
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.45;
+}
+.dr-consult-patient__footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.dr-consult-patient__completed {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--teal-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ── Readiness checklist ────────────────────────────────────── */
+.dr-consult-checklist__heading {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.dr-consult-checklist__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dr-consult-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--navy);
+}
+.dr-consult-checklist__circle {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: transparent;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.dr-consult-checklist__circle--done {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+
+/* ── Step tracker ───────────────────────────────────────────── */
+.dr-consult-steps {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.dr-consult-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.dr-consult-step:hover {
+  background: var(--soft-blue);
+}
+.dr-consult-step--active {
+  border-bottom-color: var(--teal);
+}
+.dr-consult-step__num {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft-blue);
+  color: var(--slate);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dr-consult-step--active .dr-consult-step__num {
+  background: var(--teal);
+  color: #fff;
+}
+.dr-consult-step__num--done {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+}
+.dr-consult-step--active .dr-consult-step__num--done {
+  background: var(--teal);
+  color: #fff;
+}
+.dr-consult-step__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+.dr-consult-step__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dr-consult-step__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+.dr-consult-step__sub {
+  font-size: 12px;
+  color: var(--slate);
+  font-weight: 400;
+}
+
+/* ── Workspace card ─────────────────────────────────────────── */
+.dr-consult-workspace {
+  overflow: hidden;
+}
+.dr-consult-workspace__body {
+  padding: 24px;
+}
+
+/* ── Assessment step ────────────────────────────────────────── */
+.dr-consult-assessment {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.dr-consult-assessment__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dr-consult-assessment__label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dr-consult-assessment__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-consult-assessment__counter {
+  font-size: 12px;
+  color: var(--slate);
+  font-weight: 400;
+}
+.dr-consult-assessment__hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: #92660a;
+}
+.dr-consult-assessment__hint--ok {
+  color: var(--teal-dark);
+}
+.dr-consult-assessment__private {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--slate);
+}
+.dr-consult-assessment__input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--navy);
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dr-consult-assessment__input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgb(4 155 144 / 12%);
+}
+.dr-consult-assessment__textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--navy);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dr-consult-assessment__textarea:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgb(4 155 144 / 12%);
+}
+.dr-consult-assessment__readonly-value {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.6;
+  padding: 6px 0;
+}
+.dr-consult-assessment__empty {
+  color: var(--slate);
+  font-style: italic;
+}
+
+/* ── Prescriptions step ─────────────────────────────────────── */
+.dr-consult-rx {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dr-consult-rx__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dr-consult-rx__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-consult-rx__hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--slate);
+}
+.dr-consult-rx__header-actions {
+  display: flex;
+  gap: 10px;
+}
+.dr-consult-rx__print-btn {
+  gap: 6px;
+}
+.dr-consult-rx__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 6px;
+}
+.dr-consult-rx__empty-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft-blue);
+  color: var(--slate);
+  margin-bottom: 6px;
+}
+.dr-consult-rx__empty h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-consult-rx__empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--slate);
+}
+.dr-consult-rx__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Medicine card ──────────────────────────────────────────── */
+.dr-consult-med {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dr-consult-med__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fafcff;
+  border-bottom: 1px solid var(--border);
+}
+.dr-consult-med__badge {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dr-consult-med__title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-consult-med__remove {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--slate);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.dr-consult-med__remove:hover {
+  color: #8b2d36;
+  background: #fdf0f0;
+}
+.dr-consult-med__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+.dr-consult-med__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dr-consult-med__row--three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.dr-consult-med__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dr-consult-med__field--wide {
+  grid-column: span 1;
+}
+.dr-consult-med__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.dr-consult-med__req {
+  color: #c0392b;
+}
+.dr-consult-med__input {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--navy);
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dr-consult-med__input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgb(4 155 144 / 12%);
+}
+.dr-consult-med__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dr-consult-med__chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.dr-consult-med__chip:hover {
+  border-color: var(--teal);
+}
+.dr-consult-med__chip--active {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  border-color: var(--teal);
+}
+
+/* ── Workspace footer ───────────────────────────────────────── */
+.dr-consult-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+.dr-consult-footer__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--slate);
+  font-weight: 500;
+}
+.dr-consult-footer__icon--ok {
+  color: var(--teal-dark);
+}
+.dr-consult-footer__spacer {
+  flex: 1;
+}
+
+/* ── Review step ────────────────────────────────────────────── */
+.dr-consult-review {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dr-consult-review__completed-note {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #b8e8e3;
+  border-radius: 6px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 14px;
+  font-weight: 500;
+}
+.dr-consult-review__print-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Prescription sheet (preview & print) ───────────────────── */
+.dr-consult-sheet {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.dr-consult-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafcff;
+}
+.dr-consult-sheet__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--teal);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+}
+.dr-consult-sheet__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dr-consult-sheet__rule {
+  height: 3px;
+  background: var(--teal);
+}
+.dr-consult-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+.dr-consult-sheet__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dr-consult-sheet__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dr-consult-sheet__meta-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dr-consult-sheet__meta-value {
+  font-size: 14px;
+  color: var(--navy);
+}
+.dr-consult-sheet__meta-spec {
+  font-size: 13px;
+  color: var(--slate);
+}
+.dr-consult-sheet__clinical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #fafcff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.dr-consult-sheet__meds {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dr-consult-sheet__med-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dr-consult-sheet__med-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dr-consult-sheet__med-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.dr-consult-sheet__med-detail {
+  font-size: 13px;
+  color: var(--slate);
+}
+.dr-consult-sheet__med-instr {
+  font-size: 13px;
+  color: var(--teal-dark);
+  font-style: italic;
+}
+.dr-consult-sheet__no-meds {
+  margin: 0;
+  font-size: 14px;
+  color: var(--slate);
+}
+
+/* ── Confirm icon ───────────────────────────────────────────── */
+.dr-consult-confirm-icon {
+  color: var(--teal);
+}
+
+/* ── Print-only layout ──────────────────────────────────────── */
+.dr-consult-print {
+  display: none;
+}
+@media print {
+  /* Hide everything except the print sheet */
+  body * {
+    visibility: hidden;
+  }
+  .dr-consult-print,
+  .dr-consult-print * {
+    visibility: visible;
+  }
+  .dr-consult-print {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0;
+  }
+  .dr-consult-print .dr-consult-sheet {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dr-consult-grid {
+    grid-template-columns: 1fr;
+  }
+  .dr-consult-sidebar {
+    position: static;
+  }
+  .dr-consult-step__sub {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .dr-consult-steps {
+    overflow-x: auto;
+  }
+  .dr-consult-step {
+    padding: 12px 14px;
+  }
+  .dr-consult-med__row,
+  .dr-consult-med__row--three {
+    grid-template-columns: 1fr;
+  }
+  .dr-consult-rx__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dr-consult-rx__header-actions {
+    flex-direction: column;
+  }
+  .dr-consult-footer {
+    flex-wrap: wrap;
+  }
+}

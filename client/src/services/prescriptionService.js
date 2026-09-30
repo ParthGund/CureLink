@@ -23,3 +23,19 @@ export async function saveConsultationPrescription(consultationId, items) {
     body: JSON.stringify({ items }),
   });
 }
+
+/**
+ * Fetch prescriptions for the authenticated patient (completed consultations only).
+ * @returns {Promise<{ success: boolean, prescriptions: object[] }>}
+ */
+export async function getMyPrescriptions() {
+  return api('/prescriptions/me');
+}
+
+/**
+ * Fetch currently active medicine items for the authenticated patient.
+ * @returns {Promise<{ success: boolean, medicines: object[] }>}
+ */
+export async function getMyActiveMedicines() {
+  return api('/prescriptions/me/active');
+}

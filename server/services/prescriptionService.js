@@ -232,10 +232,9 @@ async function getPatientActiveMedicines(user) {
           instructions: item.instructions || undefined,
           prescribedOn,
           endsOn,
-          doctor: {
-            name: rx.doctor.name,
-            specialization: rx.doctor.specialization,
-          },
+          doctor: rx.doctor
+            ? { name: rx.doctor.name, specialization: rx.doctor.specialization }
+            : null,
         });
       }
     }

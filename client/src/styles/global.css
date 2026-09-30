@@ -5018,15 +5018,15 @@ select.modal-input {
   display: none;
 }
 @media print {
-  /* Hide everything except the print sheet */
-  body * {
+  /* Hide everything except the print sheet — only when the workspace sets the body class */
+  body.dr-consult-printing * {
     visibility: hidden;
   }
-  .dr-consult-print,
-  .dr-consult-print * {
+  body.dr-consult-printing .dr-consult-print,
+  body.dr-consult-printing .dr-consult-print * {
     visibility: visible;
   }
-  .dr-consult-print {
+  body.dr-consult-printing .dr-consult-print {
     display: block;
     position: absolute;
     top: 0;
@@ -5034,7 +5034,7 @@ select.modal-input {
     right: 0;
     padding: 0;
   }
-  .dr-consult-print .dr-consult-sheet {
+  body.dr-consult-printing .dr-consult-print .dr-consult-sheet {
     border: 0;
     border-radius: 0;
     box-shadow: none;
@@ -5073,5 +5073,172 @@ select.modal-input {
   }
   .dr-consult-footer {
     flex-wrap: wrap;
+  }
+}
+
+/* ── Consultation skeleton & back-link helpers ─────────────── */
+.dr-consult-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.dr-consult-skel-title {
+  height: 32px;
+  width: 200px;
+  margin-bottom: 12px;
+}
+.dr-consult-skel-sub {
+  height: 16px;
+  width: 300px;
+}
+.dr-consult-grid--loading {
+  margin-top: 24px;
+}
+.dr-consult-skel-card {
+  padding: 24px;
+}
+.dr-consult-skel-line-w60 {
+  width: 60%;
+  height: 20px;
+  margin-bottom: 12px;
+}
+.dr-consult-skel-line-w80 {
+  width: 80%;
+  height: 14px;
+}
+.dr-consult-skel-line-w50 {
+  width: 50%;
+  height: 20px;
+  margin-bottom: 12px;
+}
+.dr-consult-skel-line-w90 {
+  width: 90%;
+  height: 14px;
+}
+.dr-consult-skel-name {
+  width: 70%;
+}
+
+/* ── Medical History — patient record & print helpers (mh-*) ── */
+
+/* Active medicines panel */
+.mh-active-panel {
+  margin-bottom: 24px;
+}
+.mh-active-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.mh-active-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--teal-dark);
+}
+.mh-active-panel__title h2 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--navy);
+}
+.mh-active-panel__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 7px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+.mh-active-panel__list {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+/* Frequency · duration line inside a pill */
+.mh-pill-freq {
+  display: block;
+  font-size: 13px;
+  color: var(--slate);
+  margin-top: 2px;
+}
+
+/* Footer line (until date · doctor) in active panel pills */
+.mh-pill-footer {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--slate);
+}
+
+/* Reason for visit inside diagnosis box */
+.mh-reason {
+  margin-bottom: 10px;
+}
+.mh-reason__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.mh-reason__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.5;
+}
+
+/* Active until chip in prescription pill */
+.mh-active-chip {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Prescription warning line */
+.mh-rx-warning {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--slate);
+}
+
+/* ── Print (single record, scoped to body.mh-printing) ─────── */
+@media print {
+  body.mh-printing * {
+    visibility: hidden;
+  }
+  body.mh-printing .medical-record-card--printing,
+  body.mh-printing .medical-record-card--printing * {
+    visibility: visible;
+  }
+  body.mh-printing .medical-record-card--printing {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+  body.mh-printing .icon-button--print {
+    display: none;
   }
 }

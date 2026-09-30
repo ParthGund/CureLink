@@ -1,63 +1,138 @@
-import { useEffect, useState } from 'react';
-import { ClipboardList, FolderOpen, Search, Filter } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { ClipboardList, AlertCircle, Search, Filter } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import MedicalRecordCard from '../../components/patient/MedicalRecordCard';
-import { getMyAppointments } from '../../services/appointmentService';
+import ActiveMedicinesPanel from '../../components/patient/ActiveMedicinesPanel';
+import { getMyConsultations } from '../../services/consultationService';
+import { getMyPrescriptions, getMyActiveMedicines } from '../../services/prescriptionService';
 
 /**
- * Maps a completed appointment to a Medical Record format.
- * Acts as a graceful fallback/mock if a dedicated medical records API is pending.
+ * Build a prescription-items map keyed by consultation _id.
+ * Each value is an array of shaped items for the MedicalRecordCard.
  */
-function mapAppointmentToRecord(apt) {
-  return {
-    _id: apt._id,
-    doctor: apt.doctor,
-    date: apt.appointmentDate || apt.date,
-    reason: apt.reason,
-    notes: apt.notes || 'Patient reported improvement. Advised to complete the prescribed course of medication and maintain hydration. Follow up if symptoms persist.',
-    diagnosis: 'Acute Viral Pharyngitis (Mocked)', 
-    prescriptions: [
-      { name: 'Amoxicillin', dosage: '500mg', instructions: '1 tablet twice daily after meals for 5 days' },
-      { name: 'Paracetamol', dosage: '650mg', instructions: 'As needed for fever/pain (max 3 times/day)' }
-    ],
-    vitals: { bp: '120/80', temp: '98.6°F', weight: '72 kg' }
-  };
+function buildPrescriptionMap(prescriptions) {
+  const map = {};
+  for (const rx of prescriptions) {
+    const cId = rx.consultation?._id;
+    if (!cId) continue;
+    map[cId] = (rx.items || []).map((it) => ({
+      name: it.medicine,
+      dosage: it.dosage || '',
+      frequency: it.frequency || '',
+      duration: it.duration || '',
+      instructions: it.instructions || '',
+      isActive: it.isActive || false,
+      endsOn: it.endsOn || null,
+    }));
+  }
+  return map;
 }
 
 export default function MedicalHistory() {
   const [records, setRecords] = useState([]);
+  const [activeMedicines, setActiveMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [rxWarning, setRxWarning] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [printingId, setPrintingId] = useState(null);
 
-  useEffect(() => {
-    getMyAppointments()
-      .then((data) => {
-        const all = data.appointments ?? [];
-        // Filter for completed appointments to simulate medical records
-        const completed = all.filter(apt => apt.status === 'completed');
-        
-        // Sort descending by date
-        completed.sort((a, b) => {
-          const dA = new Date(a.appointmentDate || a.date).getTime();
-          const dB = new Date(b.appointmentDate || b.date).getTime();
-          return dB - dA;
-        });
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    setRxWarning('');
 
-        // Map to records structure
-        const mappedRecords = completed.map(mapAppointmentToRecord);
-        setRecords(mappedRecords);
-      })
-      .catch(() => setRecords([]))
-      .finally(() => setLoading(false));
+    const [cResult, pResult, aResult] = await Promise.allSettled([
+      getMyConsultations(),
+      getMyPrescriptions(),
+      getMyActiveMedicines(),
+    ]);
+
+    // Consultations are essential
+    if (cResult.status === 'rejected') {
+      setError(true);
+      setRecords([]);
+      setActiveMedicines([]);
+      setLoading(false);
+      return;
+    }
+
+    const consultations = cResult.value.consultations ?? [];
+
+    // Prescriptions are optional
+    let rxMap = {};
+    if (pResult.status === 'fulfilled') {
+      rxMap = buildPrescriptionMap(pResult.value.prescriptions ?? []);
+    } else {
+      setRxWarning('Prescriptions could not be loaded.');
+    }
+
+    // Active medicines are optional
+    if (aResult.status === 'fulfilled') {
+      setActiveMedicines(aResult.value.medicines ?? []);
+    } else {
+      setActiveMedicines([]);
+    }
+
+    // Build records
+    const mapped = consultations.map((c) => ({
+      _id: c._id,
+      doctor: c.doctor,
+      date: c.appointment?.date || c.completedAt,
+      chiefComplaint: c.chiefComplaint || '',
+      diagnosis: c.diagnosis || '',
+      prescriptions: rxMap[c._id] || [],
+    }));
+
+    setRecords(mapped);
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ── Search ──────────────────────────────────────────────────
   const filteredRecords = records.filter((record) => {
+    if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const docName = (record.doctor?.name || '').toLowerCase();
     const diag = (record.diagnosis || '').toLowerCase();
-    return docName.includes(q) || diag.includes(q);
+    const complaint = (record.chiefComplaint || '').toLowerCase();
+    const medNames = (record.prescriptions || [])
+      .map((p) => p.name.toLowerCase())
+      .join(' ');
+    return (
+      docName.includes(q) ||
+      diag.includes(q) ||
+      complaint.includes(q) ||
+      medNames.includes(q)
+    );
   });
+
+  // ── Print a single record ─────────────────────────────────
+  function handlePrintRecord(id) {
+    setPrintingId(id);
+    // Allow the printing class to render before calling print
+    requestAnimationFrame(() => {
+      document.body.classList.add('mh-printing');
+      function onAfterPrint() {
+        document.body.classList.remove('mh-printing');
+        setPrintingId(null);
+        window.removeEventListener('afterprint', onAfterPrint);
+      }
+      window.addEventListener('afterprint', onAfterPrint);
+      window.print();
+    });
+  }
+
+  // Clean up body class on unmount
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('mh-printing');
+    };
+  }, []);
 
   return (
     <div className="medical-history-page">
@@ -71,7 +146,7 @@ export default function MedicalHistory() {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Search by doctor or diagnosis..."
+            placeholder="Search by doctor, diagnosis, or medicine…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -84,6 +159,19 @@ export default function MedicalHistory() {
       <div className="medical-history-content">
         {loading ? (
           <Card><p className="loading-text">Loading records…</p></Card>
+        ) : error ? (
+          <Card>
+            <EmptyState
+              icon={AlertCircle}
+              title="We couldn't load your records"
+              description="Please try again in a moment."
+              action={
+                <button type="button" className="button" onClick={loadData}>
+                  Try again
+                </button>
+              }
+            />
+          </Card>
         ) : records.length === 0 ? (
           <Card>
             <EmptyState
@@ -92,20 +180,33 @@ export default function MedicalHistory() {
               description="Your consultation notes and assessments will appear here after you complete an appointment."
             />
           </Card>
-        ) : filteredRecords.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={Search}
-              title="No matching records"
-              description="Try adjusting your search terms."
-            />
-          </Card>
         ) : (
-          <div className="medical-records-list">
-            {filteredRecords.map((record) => (
-              <MedicalRecordCard key={record._id} record={record} />
-            ))}
-          </div>
+          <>
+            <ActiveMedicinesPanel medicines={activeMedicines} />
+
+            {rxWarning && <p className="mh-rx-warning">{rxWarning}</p>}
+
+            {filteredRecords.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon={Search}
+                  title="No matching records"
+                  description="Try adjusting your search terms."
+                />
+              </Card>
+            ) : (
+              <div className="medical-records-list">
+                {filteredRecords.map((record) => (
+                  <MedicalRecordCard
+                    key={record._id}
+                    record={record}
+                    isPrinting={printingId === record._id}
+                    onPrint={() => handlePrintRecord(record._id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

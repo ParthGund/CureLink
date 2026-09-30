@@ -93,7 +93,7 @@ export default function DoctorConsultations() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skel-${i}`}>
-                    <td><div className="skeleton-line" style={{ width: '70%' }} /></td>
+                    <td><div className="skeleton-line dr-consult-skel-name" /></td>
                     <td><div className="skeleton-line skeleton-line--short" /></td>
                     <td><div className="skeleton-line skeleton-line--short" /></td>
                     <td><div className="skeleton-line skeleton-line--short" /></td>

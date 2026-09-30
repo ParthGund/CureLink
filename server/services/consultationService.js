@@ -143,7 +143,7 @@ async function getConsultationById(consultationId, user) {
 /**
  * Update editable fields of a doctor's own in-progress consultation.
  *
- * Whitelisted fields: chiefComplaint, diagnosis, clinicalNotes, prescriptions.
+ * Whitelisted fields: chiefComplaint, diagnosis, clinicalNotes.
  * All other fields in the request body are ignored (no mass assignment).
  *
  * @param {string} consultationId - Consultation._id.
@@ -177,9 +177,6 @@ async function updateConsultation(consultationId, user, input) {
   }
   if (input.clinicalNotes !== undefined) {
     consultation.clinicalNotes = input.clinicalNotes;
-  }
-  if (input.prescriptions !== undefined) {
-    consultation.prescriptions = input.prescriptions;
   }
 
   await consultation.save();

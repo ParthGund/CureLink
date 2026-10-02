@@ -1,99 +1,67 @@
-import { useEffect, useState, useCallback } from 'react';
-import { ClipboardList, AlertCircle, Search, Filter } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ClipboardList, Search, Filter } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import MedicalRecordCard from '../../components/patient/MedicalRecordCard';
-import ActiveMedicinesPanel from '../../components/patient/ActiveMedicinesPanel';
-import { getMyConsultations } from '../../services/consultationService';
-import { getMyPrescriptions, getMyActiveMedicines } from '../../services/prescriptionService';
+import { getPatientConsultations } from '../../services/consultationService';
+import { getPatientPrescriptions } from '../../services/prescriptionService';
 
 /**
- * Build a prescription-items map keyed by consultation _id.
- * Each value is an array of shaped items for the MedicalRecordCard.
+ * Joins a consultation document with its matching prescription (if any).
+ * Returns a single record object shaped for MedicalRecordCard.
+ *
+ * @param {object} consultation - Populated consultation from the API.
+ * @param {object|null} prescription - Matching prescription, or null.
+ * @returns {object} Unified medical record for the card component.
  */
-function buildPrescriptionMap(prescriptions) {
-  const map = {};
-  for (const rx of prescriptions) {
-    const cId = rx.consultation?._id;
-    if (!cId) continue;
-    map[cId] = (rx.items || []).map((it) => ({
-      name: it.medicine,
-      dosage: it.dosage || '',
-      frequency: it.frequency || '',
-      duration: it.duration || '',
-      instructions: it.instructions || '',
-      isActive: it.isActive || false,
-      endsOn: it.endsOn || null,
-    }));
-  }
-  return map;
+function buildRecord(consultation, prescription) {
+  return {
+    _id: consultation._id,
+    doctor: consultation.doctor,
+    date: consultation.completedAt || consultation.createdAt,
+    chiefComplaint: consultation.chiefComplaint || null,
+    diagnosis: consultation.diagnosis || null,
+    clinicalNotes: null, // clinical notes are not returned to patients by the API
+    prescriptionItems: prescription ? prescription.items : [],
+  };
 }
 
 export default function MedicalHistory() {
   const [records, setRecords] = useState([]);
   const [activeMedicines, setActiveMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [rxWarning, setRxWarning] = useState('');
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [printingId, setPrintingId] = useState(null);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    setRxWarning('');
-
-    const [cResult, pResult, aResult] = await Promise.allSettled([
-      getMyConsultations(),
-      getMyPrescriptions(),
-      getMyActiveMedicines(),
-    ]);
-
-    // Consultations are essential
-    if (cResult.status === 'rejected') {
-      setError(true);
-      setRecords([]);
-      setActiveMedicines([]);
-      setLoading(false);
-      return;
-    }
-
-    const consultations = cResult.value.consultations ?? [];
-
-    // Prescriptions are optional
-    let rxMap = {};
-    if (pResult.status === 'fulfilled') {
-      rxMap = buildPrescriptionMap(pResult.value.prescriptions ?? []);
-    } else {
-      setRxWarning('Prescriptions could not be loaded.');
-    }
-
-    // Active medicines are optional
-    if (aResult.status === 'fulfilled') {
-      setActiveMedicines(aResult.value.medicines ?? []);
-    } else {
-      setActiveMedicines([]);
-    }
-
-    // Build records
-    const mapped = consultations.map((c) => ({
-      _id: c._id,
-      doctor: c.doctor,
-      date: c.appointment?.date || c.completedAt,
-      chiefComplaint: c.chiefComplaint || '',
-      diagnosis: c.diagnosis || '',
-      prescriptions: rxMap[c._id] || [],
-    }));
-
-    setRecords(mapped);
-    setLoading(false);
-  }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    Promise.all([getPatientConsultations(), getPatientPrescriptions()])
+      .then(([consultationData, prescriptionData]) => {
+        const consultations = consultationData.consultations ?? [];
+        const prescriptions = prescriptionData.prescriptions ?? [];
 
-  // ── Search ──────────────────────────────────────────────────
+        // Index prescriptions by their consultation ID for O(1) lookup
+        const prescriptionByConsultation = {};
+        for (const rx of prescriptions) {
+          const consultationId =
+            typeof rx.consultation === 'object'
+              ? rx.consultation._id
+              : rx.consultation;
+          if (consultationId) {
+            prescriptionByConsultation[String(consultationId)] = rx;
+          }
+        }
+
+        const mapped = consultations.map((c) => {
+          const rx = prescriptionByConsultation[String(c._id)] ?? null;
+          return buildRecord(c, rx);
+        });
+
+        setRecords(mapped);
+      })
+      .catch(() => setError('Unable to load your medical records. Please try again later.'))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filteredRecords = records.filter((record) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -160,18 +128,7 @@ export default function MedicalHistory() {
         {loading ? (
           <Card><p className="loading-text">Loading records…</p></Card>
         ) : error ? (
-          <Card>
-            <EmptyState
-              icon={AlertCircle}
-              title="We couldn't load your records"
-              description="Please try again in a moment."
-              action={
-                <button type="button" className="button" onClick={loadData}>
-                  Try again
-                </button>
-              }
-            />
-          </Card>
+          <Card><p className="error-text">{error}</p></Card>
         ) : records.length === 0 ? (
           <Card>
             <EmptyState

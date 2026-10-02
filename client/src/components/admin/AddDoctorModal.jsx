@@ -155,7 +155,7 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
               <input
                 type="password"
                 className="modal-input"
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
                 required

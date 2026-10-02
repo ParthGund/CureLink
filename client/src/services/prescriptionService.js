@@ -11,6 +11,14 @@ export async function getConsultationPrescription(consultationId) {
 }
 
 /**
+ * Fetch all prescriptions for the authenticated patient (completed consultations only).
+ * @returns {Promise<{ success: boolean, prescriptions: object[] }>}
+ */
+export async function getPatientPrescriptions() {
+  return api('/prescriptions/me');
+}
+
+/**
  * Create or replace prescription items for a consultation.
  * An empty items array deletes the prescription.
  * @param {string} consultationId - Consultation MongoDB _id.

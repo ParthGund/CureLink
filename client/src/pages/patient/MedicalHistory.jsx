@@ -1,54 +1,63 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, FolderOpen, Search, Filter } from 'lucide-react';
+import { ClipboardList, Search, Filter } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import MedicalRecordCard from '../../components/patient/MedicalRecordCard';
-import { getMyAppointments } from '../../services/appointmentService';
+import { getPatientConsultations } from '../../services/consultationService';
+import { getPatientPrescriptions } from '../../services/prescriptionService';
 
 /**
- * Maps a completed appointment to a Medical Record format.
- * Acts as a graceful fallback/mock if a dedicated medical records API is pending.
+ * Joins a consultation document with its matching prescription (if any).
+ * Returns a single record object shaped for MedicalRecordCard.
+ *
+ * @param {object} consultation - Populated consultation from the API.
+ * @param {object|null} prescription - Matching prescription, or null.
+ * @returns {object} Unified medical record for the card component.
  */
-function mapAppointmentToRecord(apt) {
+function buildRecord(consultation, prescription) {
   return {
-    _id: apt._id,
-    doctor: apt.doctor,
-    date: apt.appointmentDate || apt.date,
-    reason: apt.reason,
-    notes: apt.notes || 'Patient reported improvement. Advised to complete the prescribed course of medication and maintain hydration. Follow up if symptoms persist.',
-    diagnosis: 'Acute Viral Pharyngitis (Mocked)', 
-    prescriptions: [
-      { name: 'Amoxicillin', dosage: '500mg', instructions: '1 tablet twice daily after meals for 5 days' },
-      { name: 'Paracetamol', dosage: '650mg', instructions: 'As needed for fever/pain (max 3 times/day)' }
-    ],
-    vitals: { bp: '120/80', temp: '98.6°F', weight: '72 kg' }
+    _id: consultation._id,
+    doctor: consultation.doctor,
+    date: consultation.completedAt || consultation.createdAt,
+    chiefComplaint: consultation.chiefComplaint || null,
+    diagnosis: consultation.diagnosis || null,
+    clinicalNotes: null, // clinical notes are not returned to patients by the API
+    prescriptionItems: prescription ? prescription.items : [],
   };
 }
 
 export default function MedicalHistory() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    getMyAppointments()
-      .then((data) => {
-        const all = data.appointments ?? [];
-        // Filter for completed appointments to simulate medical records
-        const completed = all.filter(apt => apt.status === 'completed');
-        
-        // Sort descending by date
-        completed.sort((a, b) => {
-          const dA = new Date(a.appointmentDate || a.date).getTime();
-          const dB = new Date(b.appointmentDate || b.date).getTime();
-          return dB - dA;
+    Promise.all([getPatientConsultations(), getPatientPrescriptions()])
+      .then(([consultationData, prescriptionData]) => {
+        const consultations = consultationData.consultations ?? [];
+        const prescriptions = prescriptionData.prescriptions ?? [];
+
+        // Index prescriptions by their consultation ID for O(1) lookup
+        const prescriptionByConsultation = {};
+        for (const rx of prescriptions) {
+          const consultationId =
+            typeof rx.consultation === 'object'
+              ? rx.consultation._id
+              : rx.consultation;
+          if (consultationId) {
+            prescriptionByConsultation[String(consultationId)] = rx;
+          }
+        }
+
+        const mapped = consultations.map((c) => {
+          const rx = prescriptionByConsultation[String(c._id)] ?? null;
+          return buildRecord(c, rx);
         });
 
-        // Map to records structure
-        const mappedRecords = completed.map(mapAppointmentToRecord);
-        setRecords(mappedRecords);
+        setRecords(mapped);
       })
-      .catch(() => setRecords([]))
+      .catch(() => setError('Unable to load your medical records. Please try again later.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -84,6 +93,8 @@ export default function MedicalHistory() {
       <div className="medical-history-content">
         {loading ? (
           <Card><p className="loading-text">Loading records…</p></Card>
+        ) : error ? (
+          <Card><p className="error-text">{error}</p></Card>
         ) : records.length === 0 ? (
           <Card>
             <EmptyState

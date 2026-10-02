@@ -5219,6 +5219,201 @@ select.modal-input {
   color: var(--slate);
 }
 
+/* ── Active Medicines Panel (countdown rings) ── */
+.mh-med-panel {
+  margin-bottom: 24px;
+}
+.mh-med-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.mh-med-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--teal-dark);
+}
+.mh-med-panel__title h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* 2-column grid, 1 column below 800px */
+.mh-med-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .mh-med-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Individual medicine card */
+.mh-med-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+}
+.mh-med-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.mh-med-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.mh-med-card__name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--teal-dark);
+}
+.mh-med-card__sentence {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.35;
+}
+.mh-med-card__strong {
+  color: var(--teal-dark);
+  font-weight: 600;
+}
+.mh-med-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 13px;
+  color: var(--slate);
+}
+
+/* Countdown ring SVG */
+.mh-med-ring {
+  flex-shrink: 0;
+}
+.mh-med-ring__text {
+  font-family: inherit;
+}
+.mh-med-ring__number {
+  font-size: 28px;
+  font-weight: 700;
+  fill: var(--navy);
+}
+.mh-med-ring__unit {
+  font-size: 11px;
+  fill: var(--slate);
+}
+.mh-med-ring__ends-today {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--slate);
+}
+
+/* Doctor's note box (shared by panel cards and record cards) */
+.mh-med-note {
+  padding: 10px 12px;
+  background: #fafcff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+.mh-med-note__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 4px;
+}
+.mh-med-note__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.45;
+}
+
+/* ── Record-card prescription tiles ── */
+.mh-med-rx {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.mh-med-rx__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.mh-med-rx__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--teal-dark);
+}
+
+/* Status chip (days left / ends today) */
+.mh-med-chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.mh-med-chip--teal {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+}
+.mh-med-chip--amber {
+  background: #fff8e6;
+  color: #92660a;
+}
+
+/* Three-tile row */
+.mh-med-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 800px) {
+  .mh-med-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+.mh-med-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--soft-blue);
+  border-radius: 10px;
+}
+.mh-med-tile__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate);
+}
+.mh-med-tile__value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+
 /* ── Print (single record, scoped to body.mh-printing) ─────── */
 @media print {
   body.mh-printing * {

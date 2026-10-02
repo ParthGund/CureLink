@@ -229,6 +229,7 @@ async function getPatientActiveMedicines(user) {
           dosage: item.dosage || undefined,
           frequency: item.frequency || undefined,
           duration: item.duration || undefined,
+          durationDays: item.durationDays,
           instructions: item.instructions || undefined,
           prescribedOn,
           endsOn,

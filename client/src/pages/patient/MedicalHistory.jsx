@@ -21,6 +21,7 @@ function buildPrescriptionMap(prescriptions) {
       dosage: it.dosage || '',
       frequency: it.frequency || '',
       duration: it.duration || '',
+      durationDays: it.durationDays || null,
       instructions: it.instructions || '',
       isActive: it.isActive || false,
       endsOn: it.endsOn || null,

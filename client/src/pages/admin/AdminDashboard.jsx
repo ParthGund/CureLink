@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CalendarClock,
   ArrowRight,
+  Clock,
 } from 'lucide-react';
 import Card from '../../components/common/Card';
 import { getStats } from '../../services/adminService';
@@ -25,9 +26,23 @@ const QUICK_ACTIONS = [
 ];
 
 /**
+ * Format an ISO date string into a readable short date.
+ */
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+/**
  * Admin overview dashboard.
  * Fetches aggregate platform stats and displays metric cards
- * alongside quick-action links.
+ * alongside quick-action links, status breakdown, and recent appointments.
  */
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -40,6 +55,9 @@ export default function AdminDashboard() {
       .catch((err) => setError(err.message || 'Unable to load platform stats.'))
       .finally(() => setLoading(false));
   }, []);
+
+  const breakdown = stats?.statusBreakdown;
+  const recentAppointments = stats?.recentAppointments;
 
   return (
     <div className="dashboard-page">
@@ -83,6 +101,74 @@ export default function AdminDashboard() {
 
       {error && (
         <p className="admin-error-banner">{error}</p>
+      )}
+
+      {/* ── Monitoring Section ─────────────────────────── */}
+      {!loading && !error && (
+        <div className="admin-monitor-grid">
+          {/* Status Breakdown */}
+          {breakdown && (
+            <Card className="admin-monitor-card">
+              <div className="admin-monitor-header">
+                <h2>Appointment Status Breakdown</h2>
+              </div>
+              <div className="admin-breakdown-list">
+                <div className="admin-breakdown-item">
+                  <span className="admin-status-badge admin-status-badge--upcoming">Upcoming</span>
+                  <span className="admin-breakdown-count">{breakdown.upcoming}</span>
+                </div>
+                <div className="admin-breakdown-item">
+                  <span className="admin-status-badge admin-status-badge--scheduled">Scheduled</span>
+                  <span className="admin-breakdown-count">{breakdown.scheduled}</span>
+                </div>
+                <div className="admin-breakdown-item">
+                  <span className="admin-status-badge admin-status-badge--confirmed">Confirmed</span>
+                  <span className="admin-breakdown-count">{breakdown.confirmed}</span>
+                </div>
+                <div className="admin-breakdown-item">
+                  <span className="admin-status-badge admin-status-badge--completed">Completed</span>
+                  <span className="admin-breakdown-count">{breakdown.completed}</span>
+                </div>
+                <div className="admin-breakdown-item">
+                  <span className="admin-status-badge admin-status-badge--cancelled">Cancelled</span>
+                  <span className="admin-breakdown-count">{breakdown.cancelled}</span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Recent Appointments */}
+          <Card className="admin-monitor-card">
+            <div className="admin-monitor-header">
+              <h2>Recent Appointments</h2>
+              <Link className="button--text" to="/admin/appointments">View all</Link>
+            </div>
+            {recentAppointments && recentAppointments.length > 0 ? (
+              <div className="admin-recent-list">
+                {recentAppointments.map((apt) => (
+                  <div key={apt._id} className="admin-recent-item">
+                    <span className="admin-recent-icon">
+                      <Clock size={16} aria-hidden="true" />
+                    </span>
+                    <div className="admin-recent-info">
+                      <span className="admin-recent-primary">
+                        {apt.patient?.fullName || '—'} → Dr. {apt.doctor?.name || '—'}
+                      </span>
+                      <span className="admin-recent-secondary">
+                        {formatDate(apt.date)} · {apt.timeSlot || '—'}
+                      </span>
+                    </div>
+                    <span className={`admin-status-badge admin-status-badge--${apt.status}`}>
+                      {apt.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="admin-recent-empty">No appointments have been booked yet.</p>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* ── Quick Actions ──────────────────────────────── */}

@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
-const { validateDoctorCreation } = require('../validators/doctorValidator');
+const { validateDoctorCreation, validateDoctorUpdate } = require('../validators/doctorValidator');
 
 // ── Stats ──────────────────────────────────────────────────────
 
@@ -13,13 +13,32 @@ const { validateDoctorCreation } = require('../validators/doctorValidator');
  */
 const getPlatformStats = async (req, res) => {
   try {
-    const [totalDoctors, totalPatients, totalAppointments, pendingAppointments] =
-      await Promise.all([
-        Doctor.countDocuments(),
-        User.countDocuments({ role: 'patient' }),
-        Appointment.countDocuments(),
-        Appointment.countDocuments({ status: { $in: ['upcoming', 'scheduled', 'confirmed'] } }),
-      ]);
+    const [
+      totalDoctors,
+      totalPatients,
+      totalAppointments,
+      pendingAppointments,
+      scheduledCount,
+      confirmedCount,
+      completedCount,
+      cancelledCount,
+      recentAppointments,
+    ] = await Promise.all([
+      Doctor.countDocuments(),
+      User.countDocuments({ role: 'patient' }),
+      Appointment.countDocuments(),
+      Appointment.countDocuments({ status: { $in: ['upcoming', 'scheduled', 'confirmed'] } }),
+      Appointment.countDocuments({ status: 'scheduled' }),
+      Appointment.countDocuments({ status: 'confirmed' }),
+      Appointment.countDocuments({ status: 'completed' }),
+      Appointment.countDocuments({ status: 'cancelled' }),
+      Appointment.find()
+        .populate('patient', 'fullName')
+        .populate('doctor', 'name specialization')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
 
     res.json({
       success: true,
@@ -28,6 +47,13 @@ const getPlatformStats = async (req, res) => {
         totalPatients,
         totalAppointments,
         pendingAppointments,
+        statusBreakdown: {
+          scheduled: scheduledCount,
+          confirmed: confirmedCount,
+          completed: completedCount,
+          cancelled: cancelledCount,
+        },
+        recentAppointments,
       },
     });
   } catch (error) {
@@ -144,6 +170,57 @@ const createDoctor = async (req, res) => {
 };
 
 /**
+ * PUT /api/admin/doctors/:id
+ * Update an existing doctor's profile fields.
+ * Only whitelisted fields are updated; email and password are not changeable.
+ */
+const updateDoctor = async (req, res) => {
+  const { valid, errors } = validateDoctorUpdate(req.body);
+  if (!valid) {
+    return res.status(400).json({
+      success: false,
+      message: errors[0],
+      errors,
+    });
+  }
+
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found.',
+      });
+    }
+
+    const { name, specialization, experience, availableDays, workingHours } = req.body;
+
+    if (name !== undefined) doctor.name = name.trim();
+    if (specialization !== undefined) doctor.specialization = specialization.trim();
+    if (experience !== undefined) doctor.experience = Number(experience);
+    if (availableDays !== undefined) doctor.workingDays = availableDays;
+    if (workingHours !== undefined) doctor.workingHours = workingHours;
+
+    await doctor.save();
+
+    // Also update the linked User name if it was changed
+    if (name !== undefined && doctor.user) {
+      await User.findByIdAndUpdate(doctor.user, { name: name.trim() });
+    }
+
+    const updated = await Doctor.findById(doctor._id)
+      .populate('user', 'name email role createdAt');
+
+    res.json({ success: true, doctor: updated, message: 'Doctor updated successfully.' });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update doctor.',
+    });
+  }
+};
+
+/**
  * DELETE /api/admin/doctors/:id
  * Remove a Doctor profile and its linked User record.
  */
@@ -242,7 +319,7 @@ const updateAppointmentStatus = async (req, res) => {
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status. Allowed values are: scheduled, confirmed, completed, cancelled.',
+        message: 'Invalid status. Allowed values are: scheduled, confirmed, completed, cancelled, upcoming.',
       });
     }
 
@@ -275,6 +352,7 @@ module.exports = {
   getPlatformStats,
   getAllDoctors,
   createDoctor,
+  updateDoctor,
   deleteDoctor,
   getAllPatients,
   deletePatient,

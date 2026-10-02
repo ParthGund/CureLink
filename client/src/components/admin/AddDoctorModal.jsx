@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { createDoctor } from '../../services/adminService';
+import { createDoctor, updateDoctor } from '../../services/adminService';
 
 const SPECIALIZATIONS = [
   'General Medicine',
@@ -37,14 +37,44 @@ const INITIAL_FORM = {
 };
 
 /**
- * Modal form for creating a new doctor account and profile.
- *
- * @param {{ open: boolean, onClose: () => void, onCreated: () => void }} props
+ * Build the initial form state from an existing doctor (edit mode).
+ * Extracts only the fields relevant to the form.
  */
-export default function AddDoctorModal({ open, onClose, onCreated }) {
+function buildFormFromDoctor(doctor) {
+  return {
+    name: doctor.name || '',
+    email: doctor.email || doctor.user?.email || '',
+    password: '',
+    specialization: doctor.specialization || 'General Medicine',
+    experience: doctor.experience ?? 1,
+    availableDays: doctor.workingDays || [1, 2, 3, 4, 5],
+    startTime: doctor.workingHours?.start || '09:00',
+    endTime: doctor.workingHours?.end || '17:00',
+  };
+}
+
+/**
+ * Modal form for creating or editing a doctor.
+ *
+ * - Create mode: `doctor` prop is null/undefined
+ * - Edit mode: `doctor` prop is the existing doctor object
+ *
+ * @param {{ open: boolean, onClose: () => void, onCreated: () => void, doctor?: object|null }} props
+ */
+export default function AddDoctorModal({ open, onClose, onCreated, doctor = null }) {
+  const isEditMode = !!doctor;
+
   const [form, setForm] = useState({ ...INITIAL_FORM });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // When the modal opens or the doctor prop changes, reset the form
+  useEffect(() => {
+    if (open) {
+      setForm(isEditMode ? buildFormFromDoctor(doctor) : { ...INITIAL_FORM });
+      setError('');
+    }
+  }, [open, doctor]);
 
   if (!open) return null;
 
@@ -63,10 +93,14 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
 
   function validate() {
     if (!form.name.trim()) return 'Full name is required.';
-    if (!form.email.trim()) return 'Email address is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.';
-    if (!form.password) return 'Password is required.';
-    if (form.password.length < 6) return 'Password must be at least 6 characters.';
+
+    if (!isEditMode) {
+      if (!form.email.trim()) return 'Email address is required.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address.';
+      if (!form.password) return 'Password is required.';
+      if (form.password.length < 8) return 'Password must be at least 8 characters.';
+    }
+
     if (!form.specialization) return 'Specialization is required.';
     if (form.availableDays.length === 0) return 'Select at least one working day.';
     return '';
@@ -84,22 +118,32 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
 
     setSubmitting(true);
     try {
-      await createDoctor({
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        specialization: form.specialization,
-        experience: Number(form.experience) || 1,
-        availableDays: form.availableDays,
-        workingHours: { start: form.startTime, end: form.endTime },
-      });
+      if (isEditMode) {
+        await updateDoctor(doctor._id, {
+          name: form.name.trim(),
+          specialization: form.specialization,
+          experience: Number(form.experience) || 0,
+          availableDays: form.availableDays,
+          workingHours: { start: form.startTime, end: form.endTime },
+        });
+      } else {
+        await createDoctor({
+          name: form.name.trim(),
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+          specialization: form.specialization,
+          experience: Number(form.experience) || 1,
+          availableDays: form.availableDays,
+          workingHours: { start: form.startTime, end: form.endTime },
+        });
+      }
 
       // Reset and close
       setForm({ ...INITIAL_FORM });
       onCreated();
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to create doctor account.');
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} doctor account.`);
     } finally {
       setSubmitting(false);
     }
@@ -109,11 +153,16 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
     if (e.target === e.currentTarget) onClose();
   }
 
+  const title = isEditMode ? 'Edit Doctor' : 'Add New Doctor';
+  const submitLabel = isEditMode
+    ? (submitting ? 'Saving…' : 'Save Changes')
+    : (submitting ? 'Creating…' : 'Create Doctor');
+
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-label="Add new doctor">
+    <div className="modal-overlay" onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-label={title}>
       <div className="modal-panel">
         <header className="modal-header">
-          <h2>Add New Doctor</h2>
+          <h2>{title}</h2>
           <button className="modal-close" type="button" aria-label="Close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -136,32 +185,37 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
               />
             </label>
             <label className="modal-field">
-              <span className="modal-label">Email Address <span aria-hidden="true">*</span></span>
+              <span className="modal-label">Email Address {!isEditMode && <span aria-hidden="true">*</span>}</span>
               <input
                 type="email"
                 className="modal-input"
                 placeholder="jane.smith@curelink.com"
                 value={form.email}
                 onChange={(e) => update('email', e.target.value)}
-                required
+                required={!isEditMode}
+                disabled={isEditMode}
               />
             </label>
           </div>
 
           {/* ── Row 2: Password + Specialization ────────── */}
           <div className="modal-row">
-            <label className="modal-field">
-              <span className="modal-label">Temporary Password <span aria-hidden="true">*</span></span>
-              <input
-                type="password"
-                className="modal-input"
-                placeholder="Min. 8 characters"
-                value={form.password}
-                onChange={(e) => update('password', e.target.value)}
-                required
-                minLength={6}
-              />
-            </label>
+            {!isEditMode ? (
+              <label className="modal-field">
+                <span className="modal-label">Temporary Password <span aria-hidden="true">*</span></span>
+                <input
+                  type="password"
+                  className="modal-input"
+                  placeholder="Min. 8 characters"
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  required
+                  minLength={8}
+                />
+              </label>
+            ) : (
+              <div className="modal-field" />
+            )}
             <label className="modal-field">
               <span className="modal-label">Specialization <span aria-hidden="true">*</span></span>
               <select
@@ -238,7 +292,7 @@ export default function AddDoctorModal({ open, onClose, onCreated }) {
               Cancel
             </button>
             <button type="submit" className="button" disabled={submitting}>
-              {submitting ? 'Creating…' : 'Create Doctor'}
+              {submitLabel}
             </button>
           </div>
         </form>

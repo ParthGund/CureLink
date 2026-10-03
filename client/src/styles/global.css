@@ -5076,147 +5076,174 @@ select.modal-input {
   }
 }
 
-/* ── Consultation skeleton & back-link helpers ─────────────── */
-.dr-consult-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 20px;
-}
-.dr-consult-skel-title {
-  height: 32px;
-  width: 200px;
-  margin-bottom: 12px;
-}
-.dr-consult-skel-sub {
-  height: 16px;
-  width: 300px;
-}
-.dr-consult-grid--loading {
-  margin-top: 24px;
-}
-.dr-consult-skel-card {
-  padding: 24px;
-}
-.dr-consult-skel-line-w60 {
-  width: 60%;
-  height: 20px;
-  margin-bottom: 12px;
-}
-.dr-consult-skel-line-w80 {
-  width: 80%;
-  height: 14px;
-}
-.dr-consult-skel-line-w50 {
-  width: 50%;
-  height: 20px;
-  margin-bottom: 12px;
-}
-.dr-consult-skel-line-w90 {
-  width: 90%;
-  height: 14px;
-}
-.dr-consult-skel-name {
-  width: 70%;
-}
+/* ── Doctor Dashboard ───────────────────────────────────────── */
 
-/* ── Medical History — patient record & print helpers (mh-*) ── */
-
-/* Active medicines panel */
-.mh-active-panel {
-  margin-bottom: 24px;
+/* Today's slot list inside the appointments card */
+.dr-dash-slot-list {
+  display: grid;
+  gap: 10px;
+  padding: 16px 20px;
 }
-.mh-active-panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-}
-.mh-active-panel__title {
+.dr-dash-slot-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--teal-dark);
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fafcff;
+  color: var(--slate);
+  font-size: 14px;
 }
-.mh-active-panel__title h2 {
-  margin: 0;
-  font-size: 17px;
+.dr-dash-slot-time {
+  flex: 1;
+  font-weight: 600;
   color: var(--navy);
 }
-.mh-active-panel__count {
-  display: inline-grid;
+.dr-dash-slot-label {
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: #e6f7f5;
+  color: var(--teal-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Overview card footer with manage schedule button */
+.overview-card__footer {
+  padding: 4px 20px 20px;
+}
+.overview-card__manage-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Quick Access card title */
+.dr-dash-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--navy);
+}
+
+/* Quick Access list (patients & consultations) */
+.dr-dash-list {
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+}
+.dr-dash-list__item {
+  border-bottom: 1px solid var(--border);
+}
+.dr-dash-list__item:last-child {
+  border-bottom: 0;
+}
+.dr-dash-list__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  transition: background 0.12s ease;
+}
+.dr-dash-list__link:hover {
+  background: #f6f9fd;
+}
+.dr-dash-list__avatar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
   place-items: center;
-  min-width: 26px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 7px;
+  border-radius: 50%;
   background: #e6f7f5;
   color: var(--teal-dark);
   font-size: 13px;
   font-weight: 700;
 }
-.mh-active-panel__list {
-  display: grid;
-  gap: 12px;
-  padding: 18px 20px;
+.dr-dash-list__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
-
-/* Frequency · duration line inside a pill */
-.mh-pill-freq {
-  display: block;
-  font-size: 13px;
-  color: var(--slate);
-  margin-top: 2px;
-}
-
-/* Footer line (until date · doctor) in active panel pills */
-.mh-pill-footer {
-  display: block;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
-  font-size: 12px;
-  color: var(--slate);
-}
-
-/* Reason for visit inside diagnosis box */
-.mh-reason {
-  margin-bottom: 10px;
-}
-.mh-reason__label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--slate);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 4px;
-}
-.mh-reason__text {
-  margin: 0;
+.dr-dash-list__name {
   font-size: 14px;
+  font-weight: 600;
   color: var(--navy);
-  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dr-dash-list__meta {
+  font-size: 12px;
+  color: var(--slate);
 }
 
-/* Active until chip in prescription pill */
-.mh-active-chip {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 2px 10px;
-  border-radius: 12px;
+/* Status badge on consultation list items */
+.dr-dash-list__badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dr-dash-list__badge--completed {
   background: #e6f7f5;
   color: var(--teal-dark);
-  font-size: 12px;
-  font-weight: 600;
+}
+.dr-dash-list__badge--inprogress {
+  background: #fff8e6;
+  color: #92660a;
 }
 
-/* Prescription warning line */
-.mh-rx-warning {
-  margin: 0 0 16px;
+/* Profile summary inside Quick Access */
+.dr-dash-profile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 20px;
+}
+.dr-dash-profile__avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+.dr-dash-profile__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.dr-dash-profile__name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.3px;
+}
+.dr-dash-profile__spec {
+  margin: 0;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--teal-dark);
+}
+.dr-dash-profile__qual {
+  margin: 0;
+  font-size: 12px;
   color: var(--slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Active Medicines Panel (countdown rings) ── */
@@ -5437,3 +5464,4 @@ select.modal-input {
     display: none;
   }
 }
+

@@ -334,21 +334,34 @@ export default function ConsultationWorkspace() {
 
   // ── Print ──────────────────────────────────────────────────
   function handlePrint() {
+    document.body.classList.add('dr-consult-printing');
+    function onAfterPrint() {
+      document.body.classList.remove('dr-consult-printing');
+      window.removeEventListener('afterprint', onAfterPrint);
+    }
+    window.addEventListener('afterprint', onAfterPrint);
     window.print();
   }
+
+  // Clean up body class + listener if the component unmounts while printing
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('dr-consult-printing');
+    };
+  }, []);
 
   // ── Render ─────────────────────────────────────────────────
   if (loading) {
     return (
       <div>
-        <Link to="/doctor/consultations" className="button button--secondary" style={{ display: 'inline-flex', marginBottom: '20px' }}>
-          <ArrowLeft size={16} style={{ marginRight: '6px' }} /> Back to Consultations
+        <Link to="/doctor/consultations" className="dr-consult-back button button--secondary">
+          <ArrowLeft size={16} /> Back to Consultations
         </Link>
-        <div className="skeleton-line" style={{ height: 32, width: 200, marginBottom: 12 }} />
-        <div className="skeleton-line" style={{ height: 16, width: 300 }} />
-        <div className="dr-consult-grid" style={{ marginTop: 24 }}>
-          <Card><div style={{ padding: 24 }}><div className="skeleton-line" style={{ width: '60%', height: 20, marginBottom: 12 }} /><div className="skeleton-line" style={{ width: '80%', height: 14 }} /></div></Card>
-          <Card><div style={{ padding: 24 }}><div className="skeleton-line" style={{ width: '50%', height: 20, marginBottom: 12 }} /><div className="skeleton-line" style={{ width: '90%', height: 14 }} /></div></Card>
+        <div className="skeleton-line dr-consult-skel-title" />
+        <div className="skeleton-line dr-consult-skel-sub" />
+        <div className="dr-consult-grid dr-consult-grid--loading">
+          <Card><div className="dr-consult-skel-card"><div className="skeleton-line dr-consult-skel-line-w60" /><div className="skeleton-line dr-consult-skel-line-w80" /></div></Card>
+          <Card><div className="dr-consult-skel-card"><div className="skeleton-line dr-consult-skel-line-w50" /><div className="skeleton-line dr-consult-skel-line-w90" /></div></Card>
         </div>
       </div>
     );
@@ -357,8 +370,8 @@ export default function ConsultationWorkspace() {
   if (notFound || !consultation) {
     return (
       <div>
-        <Link to="/doctor/consultations" className="button button--secondary" style={{ display: 'inline-flex', marginBottom: '20px' }}>
-          <ArrowLeft size={16} style={{ marginRight: '6px' }} /> Back to Consultations
+        <Link to="/doctor/consultations" className="dr-consult-back button button--secondary">
+          <ArrowLeft size={16} /> Back to Consultations
         </Link>
         <Card>
           <EmptyState
@@ -389,8 +402,8 @@ export default function ConsultationWorkspace() {
 
   return (
     <div>
-      <Link to="/doctor/consultations" className="button button--secondary" style={{ display: 'inline-flex', marginBottom: '20px' }}>
-        <ArrowLeft size={16} style={{ marginRight: '6px' }} /> Back to Consultations
+      <Link to="/doctor/consultations" className="dr-consult-back button button--secondary">
+        <ArrowLeft size={16} /> Back to Consultations
       </Link>
 
       <header className="page-heading">

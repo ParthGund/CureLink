@@ -11,6 +11,14 @@ export async function getConsultationPrescription(consultationId) {
 }
 
 /**
+ * Fetch all prescriptions for the authenticated patient (completed consultations only).
+ * @returns {Promise<{ success: boolean, prescriptions: object[] }>}
+ */
+export async function getPatientPrescriptions() {
+  return api('/prescriptions/me');
+}
+
+/**
  * Create or replace prescription items for a consultation.
  * An empty items array deletes the prescription.
  * @param {string} consultationId - Consultation MongoDB _id.
@@ -22,4 +30,20 @@ export async function saveConsultationPrescription(consultationId, items) {
     method: 'PUT',
     body: JSON.stringify({ items }),
   });
+}
+
+/**
+ * Fetch prescriptions for the authenticated patient (completed consultations only).
+ * @returns {Promise<{ success: boolean, prescriptions: object[] }>}
+ */
+export async function getMyPrescriptions() {
+  return api('/prescriptions/me');
+}
+
+/**
+ * Fetch currently active medicine items for the authenticated patient.
+ * @returns {Promise<{ success: boolean, medicines: object[] }>}
+ */
+export async function getMyActiveMedicines() {
+  return api('/prescriptions/me/active');
 }

@@ -229,13 +229,13 @@ async function getPatientActiveMedicines(user) {
           dosage: item.dosage || undefined,
           frequency: item.frequency || undefined,
           duration: item.duration || undefined,
+          durationDays: item.durationDays,
           instructions: item.instructions || undefined,
           prescribedOn,
           endsOn,
-          doctor: {
-            name: rx.doctor.name,
-            specialization: rx.doctor.specialization,
-          },
+          doctor: rx.doctor
+            ? { name: rx.doctor.name, specialization: rx.doctor.specialization }
+            : null,
         });
       }
     }

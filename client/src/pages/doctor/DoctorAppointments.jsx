@@ -169,11 +169,17 @@ export default function DoctorAppointments() {
       navigate(`/doctor/consultations/${data.consultation._id}`);
     } catch (err) {
       if (err.status === 409) {
-        fetchConsultationMap();
-        const existing = consultationMap[appointmentId];
-        if (existing) {
-          navigate(`/doctor/consultations/${existing._id}`);
-          return;
+        try {
+          const data = await getDoctorConsultations();
+          const list = data.consultations ?? [];
+          const existing = list.find((c) => c.appointment?._id === appointmentId);
+          if (existing) {
+            setConsultationMap((prev) => ({ ...prev, [appointmentId]: existing }));
+            navigate(`/doctor/consultations/${existing._id}`);
+            return;
+          }
+        } catch {
+          /* Lookup failure falls through to error toast */
         }
       }
       toast.error(err.message || 'Failed to start consultation.');

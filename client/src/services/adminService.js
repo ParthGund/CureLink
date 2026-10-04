@@ -39,6 +39,19 @@ export async function deleteDoctor(id) {
 }
 
 /**
+ * Update an existing doctor's profile fields (admin only).
+ * @param {string} id - Doctor MongoDB _id.
+ * @param {object} doctorData - { name, specialization, experience, availableDays, workingHours }
+ * @returns {Promise<object>} Updated doctor document.
+ */
+export async function updateDoctor(id, doctorData) {
+  return api(`/admin/doctors/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(doctorData),
+  });
+}
+
+/**
  * Fetch all patient users.
  * @returns {Promise<object[]>}
  */

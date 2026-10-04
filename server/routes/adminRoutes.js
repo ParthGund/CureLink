@@ -5,6 +5,7 @@ const {
   getPlatformStats,
   getAllDoctors,
   createDoctor,
+  updateDoctor,
   deleteDoctor,
   getAllPatients,
   deletePatient,
@@ -21,6 +22,7 @@ router.get('/stats', getPlatformStats);
 // Doctor management
 router.get('/doctors', getAllDoctors);
 router.post('/doctors', createDoctor);
+router.put('/doctors/:id', updateDoctor);
 router.delete('/doctors/:id', deleteDoctor);
 
 // Patient management

@@ -348,6 +348,134 @@
   min-height: 320px;
 }
 
+/* Edit button */
+.admin-table__edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--soft-blue);
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+.admin-table__edit-btn:hover {
+  background: var(--border);
+  border-color: var(--teal);
+}
+
+/* Action group (Edit + Remove side by side) */
+.admin-table__action-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Admin Dashboard Monitoring ────────────────────────────── */
+.admin-monitor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 22px;
+  margin-top: 32px;
+}
+.admin-monitor-card {
+  padding: 0;
+}
+.admin-monitor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-monitor-header h2 {
+  font-size: 16px;
+  letter-spacing: -.3px;
+}
+
+/* Breakdown list */
+.admin-breakdown-list {
+  display: grid;
+  gap: 0;
+}
+.admin-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-breakdown-item:last-child {
+  border-bottom: 0;
+}
+.admin-breakdown-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -.5px;
+}
+
+/* Recent appointments list */
+.admin-recent-list {
+  display: grid;
+  gap: 0;
+}
+.admin-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-recent-item:last-child {
+  border-bottom: 0;
+}
+.admin-recent-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--soft-blue);
+  color: var(--slate);
+  flex-shrink: 0;
+}
+.admin-recent-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.admin-recent-primary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-recent-secondary {
+  font-size: 12px;
+  color: var(--slate);
+}
+.admin-recent-empty {
+  padding: 32px 22px;
+  color: var(--slate);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .admin-monitor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Modal ──────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;

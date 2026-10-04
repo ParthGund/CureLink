@@ -4,6 +4,7 @@ import {
   UserPlus,
   Stethoscope,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
@@ -29,6 +30,7 @@ export default function AdminDoctors() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   function fetchDoctors() {
@@ -79,7 +81,7 @@ export default function AdminDoctors() {
           <h1>Doctor Management</h1>
           <p>Register, view, and manage healthcare practitioners on the platform.</p>
         </div>
-        <button className="button" type="button" onClick={() => setModalOpen(true)}>
+        <button className="button" type="button" onClick={() => { setEditingDoctor(null); setModalOpen(true); }}>
           <UserPlus size={17} aria-hidden="true" style={{ marginRight: 7 }} />
           Add New Doctor
         </button>
@@ -148,16 +150,27 @@ export default function AdminDoctors() {
                       )}
                     </td>
                     <td>
-                      <button
-                        className="admin-table__remove-btn"
-                        type="button"
-                        disabled={deletingId === doc._id}
-                        onClick={() => handleDelete(doc)}
-                        aria-label={`Remove ${doc.name}`}
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                        {deletingId === doc._id ? 'Removing…' : 'Remove'}
-                      </button>
+                      <div className="admin-table__action-group">
+                        <button
+                          className="admin-table__edit-btn"
+                          type="button"
+                          onClick={() => { setEditingDoctor(doc); setModalOpen(true); }}
+                          aria-label={`Edit ${doc.name}`}
+                        >
+                          <Pencil size={14} aria-hidden="true" />
+                          Edit
+                        </button>
+                        <button
+                          className="admin-table__remove-btn"
+                          type="button"
+                          disabled={deletingId === doc._id}
+                          onClick={() => handleDelete(doc)}
+                          aria-label={`Remove ${doc.name}`}
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                          {deletingId === doc._id ? 'Removing…' : 'Remove'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -184,11 +197,12 @@ export default function AdminDoctors() {
       {/* ── Add Doctor Modal ────────────────────────────── */}
       <AddDoctorModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setEditingDoctor(null); }}
         onCreated={() => {
-          toast.success('Doctor registered successfully');
+          toast.success(editingDoctor ? 'Doctor updated successfully' : 'Doctor registered successfully');
           fetchDoctors();
         }}
+        doctor={editingDoctor}
       />
     </div>
   );

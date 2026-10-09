@@ -167,3 +167,14 @@ export async function getMyPatientById(patientId) {
   const data = await api(`/doctors/me/patients/${patientId}`);
   return data.patient;
 }
+
+/**
+ * Fetch the dashboard metrics and schedule for the logged-in doctor.
+ * @param {string} [date] - Optional YYYY-MM-DD date override.
+ * @returns {Promise<{ metrics: object, todaySchedule: object[] }>}
+ */
+export async function getDoctorDashboard(date) {
+  const query = date ? `?date=${date}` : '';
+  const data = await api(`/doctors/me/dashboard${query}`);
+  return { metrics: data.metrics, todaySchedule: data.todaySchedule };
+}

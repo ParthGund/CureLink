@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Doctor = require("../models/Doctor");
 const User = require("../models/User");
+const Consultation = require("../models/Consultation");
 const { httpError } = require("../utils/httpError");
 
 // Fields returned on public endpoints (listing, by-id).
@@ -230,6 +231,88 @@ async function getDoctorPatientById(userId, patientId) {
   };
 }
 
+/**
+ * Get dashboard metrics and today's schedule for the authenticated doctor.
+ *
+ * @param {string} userId - User document _id.
+ * @param {string} dateString - Date string (YYYY-MM-DD).
+ * @returns {Promise<object>} Dashboard metrics and schedule.
+ */
+async function getDashboardMetrics(userId, dateString) {
+  const doctor = await getDoctorForUser(userId);
+  const requestedDate = dateString ? new Date(dateString) : new Date();
+  
+  if (isNaN(requestedDate.getTime())) {
+    throw httpError(400, "Invalid date format.");
+  }
+
+  const dayStart = new Date(requestedDate);
+  dayStart.setUTCHours(0, 0, 0, 0);
+
+  const dayEnd = new Date(requestedDate);
+  dayEnd.setUTCHours(23, 59, 59, 999);
+
+  // 1. Total appointments today
+  const todayAppointments = await Appointment.find({
+    doctor: doctor._id,
+    date: { $gte: dayStart, $lte: dayEnd },
+  })
+    .populate("patient", "fullName")
+    .sort({ timeSlot: 1 });
+
+  const totalAppointmentsToday = todayAppointments.length;
+
+  // 2. Upcoming pending/confirmed visits (overall)
+  const upcomingAppointments = await Appointment.countDocuments({
+    doctor: doctor._id,
+    status: { $in: ["upcoming", "scheduled", "confirmed"] },
+  });
+
+  // 3. Total completed consultations
+  const completedConsultations = await Consultation.countDocuments({
+    doctor: doctor._id,
+    status: "completed",
+  });
+
+  // 4. Unique active patients count
+  const uniquePatients = await Appointment.distinct("patient", { doctor: doctor._id });
+  const activePatientsCount = uniquePatients.length;
+
+  // 5. Today's schedule with consultation link
+  const todayConsultations = await Consultation.find({
+    appointment: { $in: todayAppointments.map((a) => a._id) },
+  }).select("_id appointment status");
+
+  const consultationMap = new Map();
+  todayConsultations.forEach((c) => {
+    consultationMap.set(c.appointment.toString(), c);
+  });
+
+  const todaySchedule = todayAppointments.map((a) => {
+    const consultation = consultationMap.get(a._id.toString());
+    return {
+      _id: a._id,
+      patientName: a.patient?.fullName || "Unknown",
+      patientId: a.patient?._id,
+      timeSlot: a.timeSlot,
+      status: a.status,
+      reason: a.reason,
+      consultationId: consultation ? consultation._id : null,
+      consultationStatus: consultation ? consultation.status : null,
+    };
+  });
+
+  return {
+    metrics: {
+      totalAppointmentsToday,
+      upcomingAppointments,
+      completedConsultations,
+      activePatientsCount,
+    },
+    todaySchedule,
+  };
+}
+
 module.exports = {
   listDoctors,
   getPublicDoctorById,
@@ -237,4 +320,5 @@ module.exports = {
   updateOwnProfile,
   getDoctorPatients,
   getDoctorPatientById,
+  getDashboardMetrics,
 };

@@ -195,6 +195,19 @@ const getMyPatientById = async (req, res) => {
   }
 };
 
+const getDashboard = async (req, res) => {
+  try {
+    const { date } = req.query; // optional date override for "today"
+    const data = await doctorService.getDashboardMetrics(req.user._id, date);
+    res.status(200).json({
+      success: true,
+      ...data,
+    });
+  } catch (error) {
+    sendError(res, error, "Failed to fetch dashboard metrics.");
+  }
+};
+
 module.exports = {
   getDoctors,
   getDoctorById,
@@ -203,4 +216,5 @@ module.exports = {
   getAvailableSlots,
   getMyPatients,
   getMyPatientById,
+  getDashboard,
 };

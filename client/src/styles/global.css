@@ -5215,7 +5215,8 @@ select.modal-input {
 .dr-dash-slot-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -5223,18 +5224,28 @@ select.modal-input {
   color: var(--slate);
   font-size: 14px;
 }
+.dr-dash-slot-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .dr-dash-slot-time {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--navy);
 }
-.dr-dash-slot-label {
-  padding: 2px 10px;
-  border-radius: 6px;
-  background: #e6f7f5;
-  color: var(--teal-dark);
-  font-size: 12px;
-  font-weight: 700;
+.dr-dash-slot-patient {
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 15px;
+}
+.dr-dash-slot-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Overview card footer with manage schedule button */
@@ -5325,6 +5336,10 @@ select.modal-input {
 .dr-dash-list__badge--inprogress {
   background: #fff8e6;
   color: #92660a;
+}
+.dr-dash-list__badge--upcoming {
+  background: #eef2f6;
+  color: var(--slate);
 }
 
 /* Profile summary inside Quick Access */

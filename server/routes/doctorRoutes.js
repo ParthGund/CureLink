@@ -8,6 +8,7 @@ const {
   updateMyProfile,
   getMyPatients,
   getMyPatientById,
+  getDashboard,
 } = require("../controllers/doctorController");
 const {
   createSlots,
@@ -26,6 +27,7 @@ const {
 router.get("/", protect, getDoctors);
 
 // Doctor own-profile and slot management (must be before /:id routes)
+router.get("/me/dashboard", protect, authorize("doctor"), getDashboard);
 router.get("/me", protect, authorize("doctor"), getMyProfile);
 router.put("/me", protect, authorize("doctor"), updateMyProfile);
 router.get("/me/slots", protect, authorize("doctor"), listOwnSlots);

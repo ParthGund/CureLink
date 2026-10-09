@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from "../../context/ToastContext";
 import {
-  CalendarDays, Users, FileText, Activity, UserCog,
+  CalendarDays, Users, FileText, Activity, UserCog, Clock, CheckCircle2
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
-import { getMySlots, getMyPatients, getMyProfile } from '../../services/doctorService';
-import { getDoctorConsultations } from '../../services/consultationService';
+import { getDoctorDashboard, getMyPatients, getMyProfile } from '../../services/doctorService';
+import { getDoctorConsultations, startConsultation } from '../../services/consultationService';
 
 /**
  * Returns a YYYY-MM-DD string for the given Date in local time.
@@ -50,24 +51,27 @@ function formatRelativeDate(iso) {
 }
 
 export default function DoctorDashboard() {
-  const [slots, setSlots] = useState([]);
+  const [dashboardData, setDashboardData] = useState({ metrics: {}, todaySchedule: [] });
   const [patients, setPatients] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [startingId, setStartingId] = useState(null);
+  
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
-    const today = new Date();
-    const todayString = toLocalDateString(today);
+    const todayString = toLocalDateString(new Date());
 
     Promise.allSettled([
-      getMySlots({ from: todayString, to: todayString }),
+      getDoctorDashboard(todayString),
       getMyPatients(),
       getDoctorConsultations(),
       getMyProfile(),
-    ]).then(([slotsResult, patientsResult, consultationsResult, profileResult]) => {
-      if (slotsResult.status === 'fulfilled') {
-        setSlots(slotsResult.value || []);
+    ]).then(([dashboardResult, patientsResult, consultationsResult, profileResult]) => {
+      if (dashboardResult.status === 'fulfilled') {
+        setDashboardData(dashboardResult.value || { metrics: {}, todaySchedule: [] });
       }
       if (patientsResult.status === 'fulfilled') {
         setPatients(patientsResult.value || []);
@@ -81,15 +85,11 @@ export default function DoctorDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // Today's overview metrics derived from slots
-  const bookedCount = slots.filter((s) => s.isBooked).length;
-  const availableCount = slots.filter((s) => !s.isBooked).length;
-
-  // Unique patients today = patients who have an appointment on today's slots
-  // Since we only have the slot list (not full appointment objects), we use
-  // total patients as a reasonable proxy for the overview stat.
-  // The booked slots count is the most accurate "today's patients" figure.
-  const todayPatientsCount = bookedCount;
+  const { metrics, todaySchedule } = dashboardData;
+  const bookedCount = metrics.totalAppointmentsToday || 0;
+  const upcomingCount = metrics.upcomingAppointments || 0;
+  const completedCount = metrics.completedConsultations || 0;
+  const activePatientsCount = metrics.activePatientsCount || 0;
 
   // Quick Access: most recent 4 patients and 4 consultations
   const recentPatients = patients.slice(0, 4);
@@ -100,6 +100,23 @@ export default function DoctorDashboard() {
 
   const doctorName = profile?.name || 'Doctor';
   const greeting = getGreeting();
+
+  async function handleConsultationClick(apt) {
+    if (apt.consultationId) {
+      navigate(`/doctor/consultations/${apt.consultationId}`);
+      return;
+    }
+    
+    setStartingId(apt._id);
+    try {
+      const data = await startConsultation(apt._id);
+      navigate(`/doctor/consultations/${data.consultation._id}`);
+    } catch (err) {
+      showToast(err.message || 'Failed to start consultation.', 'error');
+    } finally {
+      setStartingId(null);
+    }
+  }
 
   return (
     <div className="dashboard-page">
@@ -117,18 +134,52 @@ export default function DoctorDashboard() {
           </div>
           {loading ? (
             <p className="loading-text">Loading appointments…</p>
-          ) : slots.filter((s) => s.isBooked).length > 0 ? (
+          ) : todaySchedule.length > 0 ? (
             <div className="dr-dash-slot-list">
-              {slots.filter((s) => s.isBooked).map((slot) => (
-                <div key={slot.id || slot._id} className="dr-dash-slot-item">
-                  <CalendarDays size={15} aria-hidden="true" />
-                  <span className="dr-dash-slot-time">
-                    {slot.startTime}
-                    {slot.endTime ? ` – ${slot.endTime}` : ''}
-                  </span>
-                  <span className="dr-dash-slot-label">Booked</span>
-                </div>
-              ))}
+              {todaySchedule.map((apt) => {
+                let badgeLabel = 'Upcoming';
+                let badgeClass = 'dr-dash-list__badge--upcoming';
+                let linkLabel = 'Start Consultation';
+                let isComplete = false;
+                
+                if (apt.consultationStatus === 'completed' || apt.status === 'completed') {
+                  badgeLabel = 'Completed';
+                  badgeClass = 'dr-dash-list__badge--completed';
+                  linkLabel = 'View Record';
+                  isComplete = true;
+                } else if (apt.consultationStatus === 'in_progress') {
+                  badgeLabel = 'In Progress';
+                  badgeClass = 'dr-dash-list__badge--inprogress';
+                  linkLabel = 'Resume';
+                }
+                
+                const isStarting = startingId === apt._id;
+
+                return (
+                  <div key={apt._id} className="dr-dash-slot-item">
+                    <div className="dr-dash-slot-item__info">
+                      <span className="dr-dash-slot-time">
+                        {isComplete ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+                        {apt.timeSlot}
+                      </span>
+                      <span className="dr-dash-slot-patient">{apt.patientName}</span>
+                    </div>
+                    <div className="dr-dash-slot-item__actions">
+                      <span className={`dr-dash-list__badge ${badgeClass}`}>
+                        {badgeLabel}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="text"
+                        onClick={() => handleConsultationClick(apt)}
+                        disabled={isStarting}
+                      >
+                        {isStarting ? 'Starting...' : linkLabel}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -147,18 +198,23 @@ export default function DoctorDashboard() {
           <div className="overview-list">
             <div className="overview-item">
               <CalendarDays size={21} aria-hidden="true" />
-              <strong>Booked</strong>
+              <strong>Today's Bookings</strong>
               <span>{loading ? '—' : bookedCount}</span>
             </div>
             <div className="overview-item">
               <Activity size={21} aria-hidden="true" />
-              <strong>Available Slots</strong>
-              <span>{loading ? '—' : availableCount}</span>
+              <strong>Upcoming Overall</strong>
+              <span>{loading ? '—' : upcomingCount}</span>
             </div>
             <div className="overview-item">
               <Users size={21} aria-hidden="true" />
-              <strong>Patients</strong>
-              <span>{loading ? '—' : todayPatientsCount}</span>
+              <strong>Active Patients</strong>
+              <span>{loading ? '—' : activePatientsCount}</span>
+            </div>
+            <div className="overview-item">
+              <FileText size={21} aria-hidden="true" />
+              <strong>Consultations</strong>
+              <span>{loading ? '—' : completedCount}</span>
             </div>
           </div>
           <div className="overview-card__footer">

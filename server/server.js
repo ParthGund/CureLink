@@ -51,7 +51,7 @@ const authLimiter = rateLimit({
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
-    phase: 'Phase 2 - Backend Foundation',
+    phase: 'Phase 4 - Core Features',
     timestamp: new Date().toISOString(),
   });
 });

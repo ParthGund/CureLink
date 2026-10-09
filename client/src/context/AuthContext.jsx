@@ -35,10 +35,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function updateProfile(payload) {
+    const data = await authService.updateMe(payload);
+    setUser(data.user);
+    return data;
+  }
+
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

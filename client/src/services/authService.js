@@ -35,3 +35,14 @@ export function logout() {
 export function getMe() {
   return api('/auth/me');
 }
+
+/**
+ * Update the currently authenticated user's profile.
+ * @param {object} payload - The profile data to update.
+ */
+export function updateMe(payload) {
+  return api('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}

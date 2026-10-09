@@ -151,6 +151,12 @@ const getMe = async (req, res) => {
       });
     }
 
+    let patientData = null;
+    if (user.role === 'patient') {
+      const Patient = require('../models/Patient');
+      patientData = await Patient.findOne({ userId: user._id });
+    }
+
     res.status(200).json({
       success: true,
       user: {
@@ -159,6 +165,7 @@ const getMe = async (req, res) => {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
+        patient: patientData,
       },
     });
   } catch (error) {
@@ -169,9 +176,79 @@ const getMe = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Update current authenticated user (and patient profile if patient)
+ * @route   PUT /api/auth/me
+ * @access  Private
+ */
+const updateMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Update User basic info
+    if (req.body.name) user.name = req.body.name.trim();
+    if (req.body.email) user.email = req.body.email.trim().toLowerCase();
+    
+    // We do NOT update passwords or roles here.
+
+    await user.save();
+
+    let patientData = null;
+    if (user.role === 'patient') {
+      const Patient = require('../models/Patient');
+      let patient = await Patient.findOne({ userId: user._id });
+      
+      if (!patient) {
+        // Fallback for an uninitialized patient profile
+        patient = new Patient({
+          userId: user._id,
+          fullName: user.name,
+          email: user.email,
+          phone: req.body.phone || '0000000000'
+        });
+      } else {
+        patient.fullName = user.name;
+        patient.email = user.email;
+      }
+      
+      if (req.body.phone !== undefined) patient.phone = req.body.phone;
+      if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
+      if (req.body.gender !== undefined) patient.gender = req.body.gender;
+      if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup;
+      if (req.body.emergencyContact !== undefined) patient.emergencyContact = req.body.emergencyContact;
+
+      await patient.save();
+      patientData = patient;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully.',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        patient: patientData,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   registerPatient,
   loginPatient,
   logoutUser,
   getMe,
+  updateMe,
 };

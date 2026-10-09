@@ -59,7 +59,7 @@ export default function DoctorDashboard() {
   const [startingId, setStartingId] = useState(null);
   
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const toast = useToast();
 
   useEffect(() => {
     const todayString = toLocalDateString(new Date());
@@ -77,7 +77,7 @@ export default function DoctorDashboard() {
         setPatients(patientsResult.value || []);
       }
       if (consultationsResult.status === 'fulfilled') {
-        setConsultations(consultationsResult.value.consultations ?? []);
+        setConsultations(consultationsResult.value?.consultations ?? []);
       }
       if (profileResult.status === 'fulfilled') {
         setProfile(profileResult.value || null);
@@ -85,11 +85,11 @@ export default function DoctorDashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const { metrics, todaySchedule } = dashboardData;
-  const bookedCount = metrics.totalAppointmentsToday || 0;
-  const upcomingCount = metrics.upcomingAppointments || 0;
-  const completedCount = metrics.completedConsultations || 0;
-  const activePatientsCount = metrics.activePatientsCount || 0;
+  const { metrics = {}, todaySchedule = [] } = dashboardData ?? {};
+  const bookedCount = metrics.totalAppointmentsToday ?? 0;
+  const upcomingCount = metrics.upcomingAppointments ?? 0;
+  const completedCount = metrics.completedConsultations ?? 0;
+  const activePatientsCount = metrics.activePatientsCount ?? 0;
 
   // Quick Access: most recent 4 patients and 4 consultations
   const recentPatients = patients.slice(0, 4);
@@ -112,7 +112,7 @@ export default function DoctorDashboard() {
       const data = await startConsultation(apt._id);
       navigate(`/doctor/consultations/${data.consultation._id}`);
     } catch (err) {
-      showToast(err.message || 'Failed to start consultation.', 'error');
+      toast.error(err.message || 'Failed to start consultation.');
     } finally {
       setStartingId(null);
     }

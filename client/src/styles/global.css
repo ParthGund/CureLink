@@ -5608,3 +5608,166 @@ select.modal-input {
   }
 }
 
+/* ── Consultation Reminder Banner (Patient Dashboard, FR-09) ── */
+.consultation-reminder-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 18px 44px 18px 22px;
+  border: 1px solid #f5d78e;
+  border-radius: var(--radius);
+  background: #fffbee;
+}
+.consultation-reminder-banner__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #fde9a0;
+  color: #7a5200;
+}
+.consultation-reminder-banner__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.consultation-reminder-banner__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a5200;
+}
+.consultation-reminder-banner__detail {
+  margin: 0;
+  font-size: 15px;
+  color: var(--navy);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.consultation-reminder-banner__when {
+  margin: 0;
+  font-size: 13px;
+  color: var(--slate);
+}
+.consultation-reminder-banner__cta {
+  flex-shrink: 0;
+}
+.consultation-reminder-banner__dismiss {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7a5200;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.consultation-reminder-banner__dismiss:hover {
+  background: rgba(122, 82, 0, 0.08);
+}
+@media (max-width: 800px) {
+  .consultation-reminder-banner {
+    flex-wrap: wrap;
+    padding-right: 44px;
+  }
+  .consultation-reminder-banner__cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Profile Form (Shared View/Edit, FR-01) ────────────────── */
+.profile-form {
+  padding: 32px 28px;
+}
+.profile-form__fields {
+  display: grid;
+  gap: 0;
+}
+.profile-form__field {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  min-height: 52px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-form__field:last-child {
+  border-bottom: 0;
+}
+.profile-form__label {
+  color: var(--slate);
+  font-size: 14px;
+  font-weight: 600;
+}
+.profile-form__value {
+  color: var(--navy);
+  font-size: 14px;
+}
+.profile-form__input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--navy);
+  font-size: 14px;
+  background: #fff;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.profile-form__input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(4, 155, 144, 0.12);
+}
+.profile-form__input--textarea {
+  height: auto;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 72px;
+}
+select.profile-form__input {
+  appearance: auto;
+  cursor: pointer;
+}
+.profile-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+}
+.profile-form__actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .profile-form {
+    padding: 24px 20px;
+  }
+  .profile-form__field {
+    grid-template-columns: 130px 1fr;
+  }
+}
+
+/* ── Spin icon (used in save buttons) ──────────────────────── */
+.spin-icon {
+  animation: spin 0.7s linear infinite;
+}

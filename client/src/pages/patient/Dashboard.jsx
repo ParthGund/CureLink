@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarCheck, CheckCircle2, Activity, Bell, FolderOpen, FileText } from 'lucide-react';
+import { CalendarCheck, CheckCircle2, Activity, Bell, FolderOpen, FileText, X } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
@@ -15,6 +15,9 @@ const DASHBOARD_RECENT_LIMIT = 3;
 /** 48 hours in milliseconds. */
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
+/** 24 hours in milliseconds. */
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Return the raw Date object for an appointment.
  * Handles both `date` and `appointmentDate` field names.
@@ -24,9 +27,23 @@ function getAptDate(apt) {
   return raw ? new Date(raw) : null;
 }
 
+/**
+ * Returns true when the appointment falls within the next 24 hours
+ * (i.e. today or very soon).
+ */
+function isWithin24Hours(apt) {
+  const d = getAptDate(apt);
+  if (!d) return false;
+  const diff = d.getTime() - Date.now();
+  // Include appointments that are in the past today (diff < 0 but same calendar day)
+  // or within the next 24 hours.
+  return diff <= TWENTY_FOUR_HOURS_MS && diff > -TWENTY_FOUR_HOURS_MS;
+}
+
 export default function PatientDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading]           = useState(true);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
     getMyAppointments()
@@ -68,6 +85,10 @@ export default function PatientDashboard() {
     return d.getTime() - Date.now() <= FORTY_EIGHT_HOURS_MS;
   })();
 
+  // ── Imminent consultation reminder (today / within 24 h) ──────
+  const imminentAppointment = upcomingList.find((a) => isWithin24Hours(a)) ?? null;
+  const showImminentBanner = !loading && imminentAppointment && !bannerDismissed;
+
   // Recent activity — last 3 appointments across all statuses
   const recentActivity = appointments.slice(0, DASHBOARD_RECENT_LIMIT);
 
@@ -102,6 +123,47 @@ export default function PatientDashboard() {
         <h1>Welcome back.</h1>
         <p>Your healthcare information, appointments, and activity will appear here.</p>
       </header>
+
+      {/* ── Imminent consultation reminder banner ─────────────── */}
+      {showImminentBanner && (
+        <div className="consultation-reminder-banner" role="alert">
+          <div className="consultation-reminder-banner__icon" aria-hidden="true">
+            <Bell size={20} />
+          </div>
+          <div className="consultation-reminder-banner__content">
+            <p className="consultation-reminder-banner__label">Consultation Today</p>
+            <p className="consultation-reminder-banner__detail">
+              <strong>{imminentAppointment.doctor?.name ?? 'Your doctor'}</strong>
+              {imminentAppointment.doctor?.specialization
+                ? <> · {imminentAppointment.doctor.specialization}</>
+                : null}
+            </p>
+            <p className="consultation-reminder-banner__when">
+              {getAptDate(imminentAppointment)
+                ? formatDisplayDate(
+                    getAptDate(imminentAppointment).toISOString().split('T')[0]
+                  )
+                : ''}
+              {imminentAppointment.timeSlot ? ` · ${imminentAppointment.timeSlot}` : ''}
+            </p>
+          </div>
+          <Button
+            to="/patient/appointments"
+            variant="secondary"
+            className="consultation-reminder-banner__cta"
+          >
+            View Details
+          </Button>
+          <button
+            type="button"
+            className="consultation-reminder-banner__dismiss"
+            onClick={() => setBannerDismissed(true)}
+            aria-label="Dismiss reminder"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* ── Stat cards ──────────────────────────────────────── */}
       <div className="patient-stat-grid">

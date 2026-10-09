@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ClipboardList, AlertCircle, Search, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ClipboardList, AlertCircle, Search, Filter, Edit } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import MedicalRecordCard from '../../components/patient/MedicalRecordCard';
@@ -38,6 +40,9 @@ export default function MedicalHistory() {
   const [rxWarning, setRxWarning] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [printingId, setPrintingId] = useState(null);
+  const { user } = useAuth();
+  
+  const patient = user?.patient || {};
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -144,6 +149,33 @@ export default function MedicalHistory() {
         <h1>Medical History</h1>
         <p>Review your clinical records, consultation notes, and prescriptions.</p>
       </header>
+
+      <Card style={{ marginBottom: '24px' }}>
+        <div className="card-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', margin: 0 }}>My Medical Profile</h2>
+          <Link to="/patient/profile" className="button button--secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Edit size={16} /> Edit Medical Profile
+          </Link>
+        </div>
+        <dl className="dr-apt-detail__fields" style={{ padding: 0 }}>
+          <div className="dr-apt-detail__row">
+            <dt>Allergies</dt>
+            <dd>{patient.allergies || 'None reported'}</dd>
+          </div>
+          <div className="dr-apt-detail__row">
+            <dt>Chronic Conditions</dt>
+            <dd>{patient.chronicConditions || 'None reported'}</dd>
+          </div>
+          <div className="dr-apt-detail__row">
+            <dt>Past Surgeries</dt>
+            <dd>{patient.surgeries || 'None reported'}</dd>
+          </div>
+          <div className="dr-apt-detail__row">
+            <dt>Current Medications</dt>
+            <dd>{patient.currentMedications || 'None reported'}</dd>
+          </div>
+        </dl>
+      </Card>
 
       <div className="medical-history-toolbar">
         <div className="search-field">

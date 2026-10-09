@@ -11,6 +11,7 @@ const patientSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer_not_to_say"],
     },
     bloodGroup: { type: String, trim: true },
+    address: { type: String, trim: true },
     emergencyContact: { type: String, trim: true },
     reasonForVisit: { type: String, trim: true },
     // Medical History fields

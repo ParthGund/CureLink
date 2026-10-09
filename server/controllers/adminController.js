@@ -122,73 +122,62 @@ const createDoctor = async (req, res) => {
     });
   }
 
-  let useTransaction = true;
-  let session;
+  const session = await mongoose.startSession();
+
+  const userDoc = {
+    name: name.trim(),
+    email: trimmedEmail,
+    password,
+    role: 'doctor',
+  };
+
+  const doctorFields = {
+    name: name.trim(),
+    email: trimmedEmail,
+    specialization: specialization.trim(),
+  };
+
+  if (experience !== undefined) doctorFields.experience = experience;
+  if (availableDays) doctorFields.workingDays = availableDays;
+  if (workingHours) doctorFields.workingHours = workingHours;
+
   try {
-    session = await mongoose.startSession();
     session.startTransaction();
+    const [user] = await User.create([userDoc], { session });
+    const [doctor] = await Doctor.create([{ ...doctorFields, user: user._id }], { session });
+    await session.commitTransaction();
+    return res.status(201).json({ success: true, doctor, message: 'Doctor created successfully.' });
   } catch (err) {
-    useTransaction = false;
-    if (session) {
-      session.endSession();
-      session = null;
+    await session.abortTransaction().catch(() => {});
+    
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
     }
-  }
 
-  try {
+    if (!/replica set|Transaction numbers/i.test(err.message)) {
+      return res.status(500).json({ success: false, message: 'Failed to create doctor.', error: err.message });
+    }
+
+    // Fallback for standalone MongoDB without transactions
     let user;
-    const userDoc = {
-      name: name.trim(),
-      email: trimmedEmail,
-      password,
-      role: 'doctor',
-    };
-
-    if (useTransaction) {
-      [user] = await User.create([userDoc], { session });
-    } else {
+    try {
       user = await User.create(userDoc);
+    } catch (createErr) {
+      if (createErr.code === 11000) {
+        return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
+      }
+      return res.status(500).json({ success: false, message: 'Failed to create doctor.', error: createErr.message });
     }
 
-    // Build Doctor profile fields
-    const doctorFields = {
-      user: user._id,
-      name: name.trim(),
-      email: trimmedEmail,
-      specialization: specialization.trim(),
-    };
-
-    if (experience !== undefined) doctorFields.experience = experience;
-    if (availableDays) doctorFields.workingDays = availableDays;
-    if (workingHours) doctorFields.workingHours = workingHours;
-
-    let doctor;
-    if (useTransaction) {
-      [doctor] = await Doctor.create([doctorFields], { session });
-      await session.commitTransaction();
-    } else {
-      doctor = await Doctor.create(doctorFields);
+    try {
+      const doctor = await Doctor.create({ ...doctorFields, user: user._id });
+      return res.status(201).json({ success: true, doctor, message: 'Doctor created successfully.' });
+    } catch (e) {
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({ success: false, message: 'Failed to create doctor.', error: e.message });
     }
-
-    res.status(201).json({
-      success: true,
-      doctor,
-      message: 'Doctor created successfully.',
-    });
-  } catch (error) {
-    if (useTransaction && session) {
-      await session.abortTransaction();
-    }
-    // Basic rollback if non-transaction mode failed halfway (created user but failed doctor)
-    // We would need the user._id to delete it, but this is a simplified fallback.
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create doctor.',
-    });
   } finally {
-    if (session) {
-      session.endSession();
-    }
+    session.endSession();
   }
 };
 

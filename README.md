@@ -22,7 +22,7 @@ Booking → Consultation → Diagnosis & Treatment → Prescription → Patient 
 2. **Consultation** — Doctors start a consultation from an appointment. The workspace captures chief complaint, examination findings, diagnosis, and treatment plan.
 3. **Diagnosis & Treatment** — Structured clinical data (diagnoses, notes, assessment) is recorded within the consultation and becomes immutable once completed.
 4. **Prescription** — Medications are prescribed during the consultation with dosage, frequency, duration, and instructions. Prescriptions are linked to the consultation record.
-5. **Patient Medical History** — Completed consultations, diagnoses, prescriptions, and lab results appear in the patient's medical history timeline, accessible to both the patient and their treating doctors.
+5. **Patient Medical History** — Completed consultations, diagnoses, and prescriptions appear in the patient's medical history timeline, accessible to both the patient and their treating doctors.
 
 ---
 
@@ -30,7 +30,7 @@ Booking → Consultation → Diagnosis & Treatment → Prescription → Patient 
 
 | Requirement | Implementation |
 |---|---|
-| **Double-Booking Protection** | Explicit conflict check before insert + unique compound index on the Slot model prevents concurrent booking of the same time slot |
+| **Double-Booking Protection** | Explicit conflict check before insert + unique compound index on the Appointment model prevents concurrent booking of the same time slot |
 | **Role-Based Access Control** | `protect` + `authorize` middleware enforces role restrictions on every API route (patient, doctor, admin) |
 | **Consultation Immutability** | Completed consultations cannot be modified; the `completeConsultation` service marks status as `completed` and locks further edits |
 | **Atomic Consultation Completion** | Consultation completion atomically updates both the consultation record and the linked appointment status |
@@ -59,7 +59,7 @@ CureLink/
 │       ├── pages/
 │       │   ├── auth/                # Login, Register
 │       │   ├── patient/             # Dashboard, Appointments, BookAppointment,
-│       │   │                        # Doctors, DoctorProfile, MedicalHistory, Messages
+│       │   │                        # Doctors, DoctorProfile, MedicalHistory
 │       │   ├── doctor/              # DoctorDashboard, Schedule, Appointments,
 │       │   │                        # ConsultationWorkspace, Patients, Consultations
 │       │   ├── admin/               # AdminDashboard, Doctors, Patients, Appointments
@@ -76,7 +76,7 @@ CureLink/
 │   ├── controllers/                 # Route handlers
 │   ├── models/                      # Mongoose schemas
 │   │   ├── User.js                  # Base user (name, email, password, role)
-│   │   ├── Patient.js               # Extended patient profile
+│   │   ├── Patient.js               # Extended patient profile (allergies, conditions, surgeries, meds)
 │   │   ├── Doctor.js                # Extended doctor profile
 │   │   ├── Appointment.js           # Appointment records
 │   │   ├── Slot.js                  # Doctor availability slots
@@ -100,7 +100,7 @@ CureLink/
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, React Router, Vite |
+| Frontend | React 19, React Router, Vite |
 | Styling | Vanilla CSS (BEM naming) |
 | Backend | Node.js, Express.js |
 | Database | MongoDB, Mongoose |
@@ -340,7 +340,6 @@ style: update button styles
 refactor: extract appointment card component
 ```
 
-See [AGENTS.md](./AGENTS.md) for the complete development philosophy, coding standards, and architectural rules.
 
 ---
 

@@ -218,6 +218,7 @@ const updateMe = async (req, res) => {
       if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
       if (req.body.gender !== undefined) patient.gender = req.body.gender;
       if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup;
+      if (req.body.address !== undefined) patient.address = req.body.address;
       if (req.body.emergencyContact !== undefined) patient.emergencyContact = req.body.emergencyContact;
       if (req.body.allergies !== undefined) patient.allergies = req.body.allergies;
       if (req.body.chronicConditions !== undefined) patient.chronicConditions = req.body.chronicConditions;

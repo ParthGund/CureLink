@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
+const Consultation = require('../models/Consultation');
 const { httpError } = require('../utils/httpError');
 const scheduleService = require('./scheduleService');
 const { toIsoDate } = require('../utils/timeUtils');
@@ -214,6 +215,15 @@ async function cancelAppointment(appointmentId, user) {
 
   if (appointment.status === 'completed' || appointment.status === 'in-progress') {
     throw httpError(400, `Cannot cancel an appointment that is ${appointment.status}.`);
+  }
+
+  const completedConsultation = await Consultation.findOne({
+    appointment: appointmentId,
+    status: 'completed',
+  });
+
+  if (completedConsultation) {
+    throw httpError(400, 'Cannot cancel an appointment that has a completed consultation.');
   }
 
   appointment.status = 'cancelled';

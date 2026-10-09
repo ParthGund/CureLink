@@ -71,8 +71,8 @@ export default function LandingPage() {
             <span className="metric-pill__label">Double Booking</span>
           </div>
           <div className="metric-pill">
-            <span className="metric-pill__value">Encrypted</span>
-            <span className="metric-pill__label">Medical Records</span>
+            <span className="metric-pill__value">Role-Based</span>
+            <span className="metric-pill__label">Medical Access</span>
           </div>
         </div>
       </section>
@@ -83,7 +83,7 @@ export default function LandingPage() {
           <p>Expert care across specialized departments</p>
         </div>
         <div className="specialties-grid">
-          {['General Medicine', 'Cardiology', 'Pediatrics', 'Orthopedics', 'Dermatology', 'Neurology'].map(spec => (
+          {['General Medicine', 'Cardiology', 'Dermatology'].map(spec => (
             <div key={spec} className="specialty-card">
               <div className="specialty-card__icon">⚕️</div>
               <h3>{spec}</h3>

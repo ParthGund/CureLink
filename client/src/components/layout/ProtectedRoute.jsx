@@ -1,6 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useEffect } from 'react';
 
 const ROLE_DASHBOARDS = {
   patient: '/patient/dashboard',

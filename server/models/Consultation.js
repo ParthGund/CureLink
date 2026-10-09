@@ -38,6 +38,23 @@ const consultationSchema = new mongoose.Schema(
       trim: true,
       maxlength: [2000, 'Clinical notes must be 2000 characters or fewer.'],
     },
+    treatmentPlan: {
+      type: String,
+      trim: true,
+      maxlength: [2000, 'Treatment plan must be 2000 characters or fewer.'],
+    },
+    followUpDate: {
+      type: Date,
+    },
+    followUpInstructions: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Follow-up instructions must be 1000 characters or fewer.'],
+    },
+    prescription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Prescription',
+    },
     completedAt: { type: Date },
   },
   { timestamps: true }

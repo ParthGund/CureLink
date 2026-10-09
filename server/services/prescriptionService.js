@@ -63,8 +63,12 @@ async function upsertPrescription(user, consultationId, items) {
     throw httpError(403, 'You can only manage prescriptions for your own consultations.');
   }
 
-  if (consultation.status !== 'in_progress' && consultation.status !== 'completed') {
-    throw httpError(400, 'Prescriptions can only be managed for in-progress or completed consultations.');
+  if (consultation.status === 'completed') {
+    throw httpError(400, 'Prescriptions cannot be modified after the consultation is completed.');
+  }
+
+  if (consultation.status !== 'in_progress') {
+    throw httpError(400, 'Prescriptions can only be managed for in-progress consultations.');
   }
 
   // Empty items array → delete the prescription

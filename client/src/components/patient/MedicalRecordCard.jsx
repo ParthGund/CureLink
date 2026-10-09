@@ -1,10 +1,10 @@
-import { CheckCircle2, Printer, CalendarDays, Activity, Pill, Stethoscope, Hourglass, Clock, Moon, Info } from 'lucide-react';
+import { CheckCircle2, Printer, CalendarDays, Activity, Pill, Stethoscope, Hourglass, Clock, Moon, Info, HeartPulse, CalendarClock, FileText } from 'lucide-react';
 import { durationLabel, daysLeft } from '../../utils/formatMedicine';
 import Card from '../common/Card';
 
 
 export default function MedicalRecordCard({ record, isPrinting, onPrint }) {
-  const { doctor, date, diagnosis, chiefComplaint, prescriptions, notes, vitals } = record;
+  const { doctor, date, diagnosis, chiefComplaint, treatmentPlan, followUpDate, followUpInstructions, prescriptions, notes, vitals } = record;
 
   const doctorName = doctor?.name || 'Dr. Assigned';
   const specialization = doctor?.specialization || 'General';
@@ -18,6 +18,20 @@ export default function MedicalRecordCard({ record, isPrinting, onPrint }) {
       })
     : 'Date not available';
 
+  /** Format a date for follow-up display. */
+  function formatFollowUpDate(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  const hasFollowUp = followUpDate || (followUpInstructions && followUpInstructions.trim());
   const cardClass = `medical-record-card${isPrinting ? ' medical-record-card--printing' : ''}`;
 
   return (
@@ -71,6 +85,17 @@ export default function MedicalRecordCard({ record, isPrinting, onPrint }) {
                   {vitals.weight && <span><strong>Weight:</strong> {vitals.weight}</span>}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {treatmentPlan && treatmentPlan.trim() && (
+          <div className="medical-record-card__section">
+            <h4 className="medical-record-card__section-title">
+              <HeartPulse size={16} /> Treatment Plan
+            </h4>
+            <div className="medical-record-card__notes-box">
+              <p>{treatmentPlan}</p>
             </div>
           </div>
         )}
@@ -158,6 +183,30 @@ export default function MedicalRecordCard({ record, isPrinting, onPrint }) {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {hasFollowUp && (
+          <div className="medical-record-card__section">
+            <h4 className="medical-record-card__section-title">
+              <CalendarClock size={16} /> Follow-up
+            </h4>
+            <div className="medical-record-card__follow-up-box">
+              {followUpDate && (
+                <div className="medical-record-card__follow-up-item">
+                  <CalendarDays size={14} aria-hidden="true" />
+                  <span className="medical-record-card__follow-up-label">Date:</span>
+                  <strong>{formatFollowUpDate(followUpDate)}</strong>
+                </div>
+              )}
+              {followUpInstructions && followUpInstructions.trim() && (
+                <div className="medical-record-card__follow-up-item medical-record-card__follow-up-item--block">
+                  <FileText size={14} aria-hidden="true" />
+                  <span className="medical-record-card__follow-up-label">Instructions:</span>
+                  <p className="medical-record-card__follow-up-text">{followUpInstructions}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

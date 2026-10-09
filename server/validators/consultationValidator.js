@@ -74,6 +74,28 @@ function validateConsultationUpdate(data) {
     }
   }
 
+  if (data.treatmentPlan !== undefined) {
+    if (typeof data.treatmentPlan !== 'string') {
+      errors.push('Treatment plan must be a string.');
+    } else if (data.treatmentPlan.length > 2000) {
+      errors.push('Treatment plan must be 2000 characters or fewer.');
+    }
+  }
+
+  if (data.followUpDate !== undefined) {
+    if (typeof data.followUpDate !== 'string' || isNaN(Date.parse(data.followUpDate))) {
+      errors.push('Follow-up date must be a valid date.');
+    }
+  }
+
+  if (data.followUpInstructions !== undefined) {
+    if (typeof data.followUpInstructions !== 'string') {
+      errors.push('Follow-up instructions must be a string.');
+    } else if (data.followUpInstructions.length > 1000) {
+      errors.push('Follow-up instructions must be 1000 characters or fewer.');
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 

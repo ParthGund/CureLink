@@ -83,6 +83,9 @@ export default function MedicalHistory() {
       date: c.appointment?.date || c.completedAt,
       chiefComplaint: c.chiefComplaint || '',
       diagnosis: c.diagnosis || '',
+      treatmentPlan: c.treatmentPlan || '',
+      followUpDate: c.followUpDate || null,
+      followUpInstructions: c.followUpInstructions || '',
       prescriptions: rxMap[c._id] || [],
     }));
 

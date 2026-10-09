@@ -95,9 +95,15 @@ export default function ConsultationWorkspace() {
   const [chiefComplaint, setChiefComplaint] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [clinicalNotes, setClinicalNotes] = useState('');
+  const [treatmentPlan, setTreatmentPlan] = useState('');
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpInstructions, setFollowUpInstructions] = useState('');
 
   // Last-saved assessment values for change detection
-  const [savedAssessment, setSavedAssessment] = useState({ chiefComplaint: '', diagnosis: '', clinicalNotes: '' });
+  const [savedAssessment, setSavedAssessment] = useState({
+    chiefComplaint: '', diagnosis: '', clinicalNotes: '',
+    treatmentPlan: '', followUpDate: '', followUpInstructions: '',
+  });
 
   // Prescription items
   const [items, setItems] = useState([]);
@@ -128,10 +134,26 @@ export default function ConsultationWorkspace() {
       setChiefComplaint(c.chiefComplaint || '');
       setDiagnosis(c.diagnosis || '');
       setClinicalNotes(c.clinicalNotes || '');
+      setTreatmentPlan(c.treatmentPlan || '');
+      setFollowUpInstructions(c.followUpInstructions || '');
+
+      // Convert ISO date to YYYY-MM-DD for the date input
+      let fuDate = '';
+      if (c.followUpDate) {
+        const d = new Date(c.followUpDate);
+        if (!isNaN(d.getTime())) {
+          fuDate = d.toISOString().slice(0, 10);
+        }
+      }
+      setFollowUpDate(fuDate);
+
       setSavedAssessment({
         chiefComplaint: c.chiefComplaint || '',
         diagnosis: c.diagnosis || '',
         clinicalNotes: c.clinicalNotes || '',
+        treatmentPlan: c.treatmentPlan || '',
+        followUpDate: fuDate,
+        followUpInstructions: c.followUpInstructions || '',
       });
 
       const rx = pRes.prescription;
@@ -170,7 +192,10 @@ export default function ConsultationWorkspace() {
   const assessmentChanged =
     chiefComplaint !== savedAssessment.chiefComplaint ||
     diagnosis !== savedAssessment.diagnosis ||
-    clinicalNotes !== savedAssessment.clinicalNotes;
+    clinicalNotes !== savedAssessment.clinicalNotes ||
+    treatmentPlan !== savedAssessment.treatmentPlan ||
+    followUpDate !== savedAssessment.followUpDate ||
+    followUpInstructions !== savedAssessment.followUpInstructions;
 
   const rxChanged = !itemsEqual(items, savedServerItems);
   const hasUnsaved = (!isCompleted && assessmentChanged) || rxChanged;
@@ -216,6 +241,9 @@ export default function ConsultationWorkspace() {
     if (field === 'chiefComplaint') setChiefComplaint(value);
     else if (field === 'diagnosis') setDiagnosis(value);
     else if (field === 'clinicalNotes') setClinicalNotes(value);
+    else if (field === 'treatmentPlan') setTreatmentPlan(value);
+    else if (field === 'followUpDate') setFollowUpDate(value);
+    else if (field === 'followUpInstructions') setFollowUpInstructions(value);
   }
 
   // ── Validate items before save ─────────────────────────────
@@ -244,16 +272,35 @@ export default function ConsultationWorkspace() {
 
     try {
       if (!isCompleted && assessmentChanged) {
-        const res = await saveConsultation(consultationId, {
+        const payload = {
           chiefComplaint,
           diagnosis,
           clinicalNotes,
-        });
+          treatmentPlan,
+          followUpInstructions,
+        };
+        // Only send followUpDate if non-empty
+        if (followUpDate) {
+          payload.followUpDate = followUpDate;
+        } else {
+          payload.followUpDate = '';
+        }
+        const res = await saveConsultation(consultationId, payload);
         const c = res.consultation;
+
+        let fuDate = '';
+        if (c.followUpDate) {
+          const d = new Date(c.followUpDate);
+          if (!isNaN(d.getTime())) fuDate = d.toISOString().slice(0, 10);
+        }
+
         setSavedAssessment({
           chiefComplaint: c.chiefComplaint || '',
           diagnosis: c.diagnosis || '',
           clinicalNotes: c.clinicalNotes || '',
+          treatmentPlan: c.treatmentPlan || '',
+          followUpDate: fuDate,
+          followUpInstructions: c.followUpInstructions || '',
         });
         setConsultation((prev) => ({ ...prev, ...c }));
       }
@@ -314,7 +361,16 @@ export default function ConsultationWorkspace() {
     try {
       // Save assessment if changed
       if (assessmentChanged) {
-        await saveConsultation(consultationId, { chiefComplaint, diagnosis, clinicalNotes });
+        const payload = {
+          chiefComplaint, diagnosis, clinicalNotes,
+          treatmentPlan, followUpInstructions,
+        };
+        if (followUpDate) {
+          payload.followUpDate = followUpDate;
+        } else {
+          payload.followUpDate = '';
+        }
+        await saveConsultation(consultationId, payload);
       }
       // Save prescription if changed
       if (rxChanged) {
@@ -438,6 +494,9 @@ export default function ConsultationWorkspace() {
                 chiefComplaint={chiefComplaint}
                 diagnosis={diagnosis}
                 clinicalNotes={clinicalNotes}
+                treatmentPlan={treatmentPlan}
+                followUpDate={followUpDate}
+                followUpInstructions={followUpInstructions}
                 onChange={handleAssessmentChange}
                 readOnly={isCompleted}
               />
@@ -463,6 +522,9 @@ export default function ConsultationWorkspace() {
                 date={completedDate || 'Not completed yet'}
                 chiefComplaint={chiefComplaint}
                 diagnosis={diagnosis}
+                treatmentPlan={treatmentPlan}
+                followUpDate={followUpDate}
+                followUpInstructions={followUpInstructions}
                 items={previewItems}
                 isCompleted={isCompleted}
                 canPrint={canPrint}

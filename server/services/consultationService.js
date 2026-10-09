@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const Consultation = require('../models/Consultation');
 const Appointment = require('../models/Appointment');
+const Prescription = require('../models/Prescription');
 const appointmentService = require('./appointmentService');
 const doctorService = require('./doctorService');
 const { httpError } = require('../utils/httpError');
@@ -31,6 +33,11 @@ async function startConsultation(user, appointmentId) {
   // Guard: cancelled appointments cannot have consultations
   if (appointment.status === 'cancelled') {
     throw httpError(400, 'Cannot start a consultation for a cancelled appointment.');
+  }
+
+  // Guard: completed appointments cannot have new consultations
+  if (appointment.status === 'completed') {
+    throw httpError(400, 'Cannot start a consultation for a completed appointment.');
   }
 
   // Guard: deleted patient or doctor on the appointment
@@ -178,6 +185,15 @@ async function updateConsultation(consultationId, user, input) {
   if (input.clinicalNotes !== undefined) {
     consultation.clinicalNotes = input.clinicalNotes;
   }
+  if (input.treatmentPlan !== undefined) {
+    consultation.treatmentPlan = input.treatmentPlan;
+  }
+  if (input.followUpDate !== undefined) {
+    consultation.followUpDate = input.followUpDate || null;
+  }
+  if (input.followUpInstructions !== undefined) {
+    consultation.followUpInstructions = input.followUpInstructions;
+  }
 
   await consultation.save();
 
@@ -215,14 +231,36 @@ async function completeConsultation(consultationId, user) {
     throw httpError(400, 'A diagnosis is required before completing the consultation.');
   }
 
-  consultation.status = 'completed';
-  consultation.completedAt = new Date();
-  await consultation.save();
+  // Find the prescription (if any) for this consultation
+  const prescription = await Prescription.findOne({ consultation: consultationId });
 
-  // Update the linked appointment status to completed
-  await Appointment.findByIdAndUpdate(consultation.appointment, {
-    status: 'completed',
-  });
+  // Use a transaction to atomically:
+  //   1. Set consultation status to 'completed' + completedAt + prescription ref
+  //   2. Set appointment status to 'completed'
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    consultation.status = 'completed';
+    consultation.completedAt = new Date();
+    if (prescription) {
+      consultation.prescription = prescription._id;
+    }
+    await consultation.save({ session });
+
+    await Appointment.findByIdAndUpdate(
+      consultation.appointment,
+      { status: 'completed' },
+      { session }
+    );
+
+    await session.commitTransaction();
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
 
   return consultation;
 }

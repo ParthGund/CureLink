@@ -217,13 +217,13 @@ async function cancelAppointment(appointmentId, user) {
     throw httpError(400, `Cannot cancel an appointment that is ${appointment.status}.`);
   }
 
-  const completedConsultation = await Consultation.findOne({
+  const activeConsultation = await Consultation.findOne({
     appointment: appointmentId,
-    status: 'completed',
+    status: { $in: ['in_progress', 'completed'] },
   });
 
-  if (completedConsultation) {
-    throw httpError(400, 'Cannot cancel an appointment that has a completed consultation.');
+  if (activeConsultation) {
+    throw httpError(400, 'Cannot cancel an appointment that has an active or completed consultation.');
   }
 
   appointment.status = 'cancelled';

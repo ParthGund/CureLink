@@ -63,6 +63,7 @@ export default function AppRoutes() {
           <Route path="doctors" element={<AdminDoctors />} />
           <Route path="patients" element={<AdminPatients />} />
           <Route path="appointments" element={<AdminAppointments />} />
+          <Route path="profile" element={<Profile role="admin" />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

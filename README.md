@@ -110,6 +110,19 @@ CureLink/
 
 ---
 
+## Data Models (SRS Section 8)
+
+The application revolves around the following core entities:
+- **User**: Base authentication profile with role (`patient`, `doctor`, `admin`) and credentials.
+- **Patient**: Extended clinical profile including allergies, chronic conditions, surgeries, and current medications.
+- **Doctor**: Professional profile defining specialization, experience, and weekly working hours.
+- **Appointment**: Record of a booked visit between a patient and doctor for a specific date and time slot.
+- **Slot**: Individual 15-30 minute interval that a doctor is available for booking.
+- **Consultation**: Clinical record capturing chief complaint, diagnosis, and treatment plan for an appointment.
+- **Prescription**: Medication details (dosage, frequency, duration) linked to a specific consultation.
+
+---
+
 ## API Endpoint Reference
 
 All endpoints are prefixed with `/api`. Protected routes require an authenticated session (JWT cookie).
@@ -120,7 +133,7 @@ All endpoints are prefixed with `/api`. Protected routes require an authenticate
 |---|---|---|---|
 | `POST` | `/register` | — | Register a new patient account |
 | `POST` | `/login` | — | Log in and receive a session cookie |
-| `POST` | `/logout` | Yes | Log out and clear the session cookie |
+| `POST` | `/logout` | — | Log out and clear the session cookie |
 | `GET` | `/me` | Yes | Get the current user's profile |
 | `PUT` | `/me` | Yes | Update the current user's profile |
 
@@ -131,7 +144,7 @@ All endpoints are prefixed with `/api`. Protected routes require an authenticate
 | `POST` | `/` | Yes | Patient | Book an appointment (with double-booking protection) |
 | `GET` | `/me` | Yes | Patient | List the patient's own appointments |
 | `GET` | `/doctor/me` | Yes | Doctor | List the doctor's own appointments |
-| `GET` | `/patient/:patientId` | Yes | Doctor | List a specific patient's appointments |
+| `GET` | `/patient/:patientId` | Yes | Doctor, Admin, Patient | List a specific patient's appointments |
 | `GET` | `/:id` | Yes | Any | Get a single appointment by ID |
 | `PUT` | `/:id/cancel` | Yes | Any | Cancel an appointment |
 
@@ -188,7 +201,7 @@ All endpoints are prefixed with `/api`. Protected routes require an authenticate
 | `PUT` | `/doctors/:id` | Yes | Admin | Update a doctor |
 | `DELETE` | `/doctors/:id` | Yes | Admin | Delete a doctor |
 | `GET` | `/patients` | Yes | Admin | List all patients |
-| `DELETE` | `/patients/:id` | Yes | Admin | Delete a patient |
+| `DELETE` | `/patients/:id` | Yes | Admin | (501 Not Implemented) Disabled by policy |
 | `GET` | `/appointments` | Yes | Admin | List all appointments |
 | `PUT` | `/appointments/:id/status` | Yes | Admin | Update an appointment's status |
 

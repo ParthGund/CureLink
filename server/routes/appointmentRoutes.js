@@ -13,7 +13,7 @@ const {
 // All appointment routes require authentication
 router.use(protect);
 
-router.post('/', createAppointment);
+router.post('/', authorize('patient'), createAppointment);
 router.get('/me', getMyAppointments);
 router.get('/doctor/me', authorize('doctor'), getDoctorAppointments);
 router.get('/patient/:patientId', getPatientAppointments);

@@ -6,7 +6,6 @@ import PatientDashboard from '../pages/patient/Dashboard';
 import PatientAppointments from '../pages/patient/Appointments';
 import BookAppointment from '../pages/patient/BookAppointment';
 import MedicalHistory from '../pages/patient/MedicalHistory';
-import Messages from '../pages/patient/Messages';
 import Doctors from '../pages/patient/Doctors';
 import DoctorProfile from '../pages/patient/DoctorProfile';
 import Profile from '../pages/shared/Profile';
@@ -41,7 +40,6 @@ export default function AppRoutes() {
           <Route path="appointments" element={<PatientAppointments />} />
           <Route path="appointments/book" element={<BookAppointment />} />
           <Route path="medical-history" element={<MedicalHistory />} />
-          <Route path="messages" element={<Messages />} />
           <Route path="doctors" element={<Doctors />} />
           <Route path="doctors/:doctorId" element={<DoctorProfile />} />
           <Route path="profile" element={<Profile role="patient" />} />

@@ -234,20 +234,30 @@ async function completeConsultation(consultationId, user) {
   // Find the prescription (if any) for this consultation
   const prescription = await Prescription.findOne({ consultation: consultationId });
 
-  // Use a transaction to atomically:
-  //   1. Set consultation status to 'completed' + completedAt + prescription ref
-  //   2. Set appointment status to 'completed'
-  // Includes fallback for standalone MongoDB instances without replica sets.
+  // Use atomic findOneAndUpdate to prevent race conditions
+  const updateData = {
+    $set: {
+      status: 'completed',
+      completedAt: new Date(),
+    }
+  };
+  if (prescription) {
+    updateData.$set.prescription = prescription._id;
+  }
+
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
 
-    consultation.status = 'completed';
-    consultation.completedAt = new Date();
-    if (prescription) {
-      consultation.prescription = prescription._id;
+    const updatedConsultation = await Consultation.findOneAndUpdate(
+      { _id: consultationId, status: { $ne: 'completed' } },
+      updateData,
+      { new: true, session }
+    );
+
+    if (!updatedConsultation) {
+      throw httpError(400, 'Consultation is already completed or modified concurrently.');
     }
-    await consultation.save({ session });
 
     await Appointment.findByIdAndUpdate(
       consultation.appointment,
@@ -256,22 +266,27 @@ async function completeConsultation(consultationId, user) {
     );
 
     await session.commitTransaction();
+    return updatedConsultation;
   } catch (err) {
     await session.abortTransaction();
     
-    // Fallback: If MongoDB standalone (no replica set), transactions fail. Use sequential saves.
+    // Fallback for standalone MongoDB (no replica set)
     if (err.message && err.message.toLowerCase().includes('replica set')) {
-      consultation.status = 'completed';
-      consultation.completedAt = new Date();
-      if (prescription) {
-        consultation.prescription = prescription._id;
+      const updatedConsultation = await Consultation.findOneAndUpdate(
+        { _id: consultationId, status: { $ne: 'completed' } },
+        updateData,
+        { new: true }
+      );
+
+      if (!updatedConsultation) {
+        throw httpError(400, 'Consultation is already completed or modified concurrently.');
       }
-      
-      await consultation.save();
+
       await Appointment.findByIdAndUpdate(
         consultation.appointment,
         { status: 'completed' }
       );
+      return updatedConsultation;
     } else {
       throw err;
     }

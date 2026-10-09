@@ -6,7 +6,6 @@ const navigation = [
   { label: 'Dashboard', to: '/patient/dashboard' },
   { label: 'Appointments', to: '/patient/appointments' },
   { label: 'Medical History', to: '/patient/medical-history' },
-  { label: 'Messages', to: '/patient/messages' },
 ];
 
 export default function PatientLayout() {

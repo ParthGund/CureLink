@@ -219,6 +219,10 @@ const updateMe = async (req, res) => {
       if (req.body.gender !== undefined) patient.gender = req.body.gender;
       if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup;
       if (req.body.emergencyContact !== undefined) patient.emergencyContact = req.body.emergencyContact;
+      if (req.body.allergies !== undefined) patient.allergies = req.body.allergies;
+      if (req.body.chronicConditions !== undefined) patient.chronicConditions = req.body.chronicConditions;
+      if (req.body.surgeries !== undefined) patient.surgeries = req.body.surgeries;
+      if (req.body.currentMedications !== undefined) patient.currentMedications = req.body.currentMedications;
 
       await patient.save();
       patientData = patient;

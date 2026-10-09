@@ -35,6 +35,10 @@ const PATIENT_FIELDS = [
     ],
   },
   { key: 'address',     label: 'Address',      type: 'textarea', placeholder: 'Street, City, State, PIN' },
+  { key: 'allergies',   label: 'Allergies',    type: 'textarea', placeholder: 'e.g. Penicillin, Peanuts (leave blank if none)' },
+  { key: 'chronicConditions', label: 'Chronic Conditions', type: 'textarea', placeholder: 'e.g. Asthma, Hypertension' },
+  { key: 'surgeries',   label: 'Past Surgeries', type: 'textarea', placeholder: 'e.g. Appendectomy 2015' },
+  { key: 'currentMedications', label: 'Current Medications', type: 'textarea', placeholder: 'e.g. Metformin 500mg daily' },
 ];
 
 /** Fields displayed for a doctor profile. */
@@ -52,7 +56,8 @@ const DOCTOR_FIELDS = [
 function buildFormData(user, fields) {
   const data = {};
   for (const { key } of fields) {
-    const raw = user?.[key] ?? '';
+    // Check root user, then nested patient/doctor profile
+    const raw = user?.[key] ?? user?.patient?.[key] ?? user?.doctor?.[key] ?? '';
     // Dates arrive as ISO strings — extract YYYY-MM-DD for the <input type="date">
     data[key] = key === 'dateOfBirth' && raw ? raw.slice(0, 10) : raw;
   }

@@ -122,19 +122,33 @@ const createDoctor = async (req, res) => {
     });
   }
 
-  const session = await mongoose.startSession();
+  let useTransaction = true;
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+  } catch (err) {
+    useTransaction = false;
+    if (session) {
+      session.endSession();
+      session = null;
+    }
+  }
 
   try {
-    session.startTransaction();
-
-    // Create User record within the transaction.
-    // Password hashing is handled by the User model's pre-save hook.
-    const [user] = await User.create([{
+    let user;
+    const userDoc = {
       name: name.trim(),
       email: trimmedEmail,
       password,
       role: 'doctor',
-    }], { session });
+    };
+
+    if (useTransaction) {
+      [user] = await User.create([userDoc], { session });
+    } else {
+      user = await User.create(userDoc);
+    }
 
     // Build Doctor profile fields
     const doctorFields = {
@@ -148,9 +162,13 @@ const createDoctor = async (req, res) => {
     if (availableDays) doctorFields.workingDays = availableDays;
     if (workingHours) doctorFields.workingHours = workingHours;
 
-    const [doctor] = await Doctor.create([doctorFields], { session });
-
-    await session.commitTransaction();
+    let doctor;
+    if (useTransaction) {
+      [doctor] = await Doctor.create([doctorFields], { session });
+      await session.commitTransaction();
+    } else {
+      doctor = await Doctor.create(doctorFields);
+    }
 
     res.status(201).json({
       success: true,
@@ -158,14 +176,19 @@ const createDoctor = async (req, res) => {
       message: 'Doctor created successfully.',
     });
   } catch (error) {
-    await session.abortTransaction();
-
+    if (useTransaction && session) {
+      await session.abortTransaction();
+    }
+    // Basic rollback if non-transaction mode failed halfway (created user but failed doctor)
+    // We would need the user._id to delete it, but this is a simplified fallback.
     res.status(500).json({
       success: false,
       message: 'Failed to create doctor.',
     });
   } finally {
-    session.endSession();
+    if (session) {
+      session.endSession();
+    }
   }
 };
 

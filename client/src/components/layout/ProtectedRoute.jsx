@@ -17,19 +17,6 @@ export default function ProtectedRoute({ allowedRoles }) {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      window.history.pushState(null, '', window.location.href);
-      const handlePopState = () => {
-        window.history.pushState(null, '', window.location.href);
-      };
-      window.addEventListener('popstate', handlePopState);
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-      };
-    }
-  }, [isAuthenticated, location.pathname]);
-
   if (loading) {
     return (
       <div className="auth-loading">

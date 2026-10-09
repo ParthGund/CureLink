@@ -13,6 +13,11 @@ const patientSchema = new mongoose.Schema(
     bloodGroup: { type: String, trim: true },
     emergencyContact: { type: String, trim: true },
     reasonForVisit: { type: String, trim: true },
+    // Medical History fields
+    allergies: { type: String, trim: true },
+    chronicConditions: { type: String, trim: true },
+    surgeries: { type: String, trim: true },
+    currentMedications: { type: String, trim: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, sparse: true },
   },
   { timestamps: true }

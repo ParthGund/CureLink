@@ -390,7 +390,7 @@ async function updateSlot(doctorId, slotId, changes) {
     doctor: doctorId,
     date: { $gte: dayStart, $lte: dayEnd },
     timeSlot: currentLabel,
-    status: "upcoming",
+    status: { $in: ['upcoming', 'scheduled', 'confirmed'] },
   });
 
   if (bookedAppt) {
@@ -493,7 +493,7 @@ async function updateSlot(doctorId, slotId, changes) {
     doctor: doctorId,
     date: { $gte: updatedDay.dayStart, $lte: updatedDay.dayEnd },
     timeSlot: updatedLabel,
-    status: "upcoming",
+    status: { $in: ['upcoming', 'scheduled', 'confirmed'] },
   });
 
   return formatOwnSlot(slot, Boolean(isBooked));
@@ -521,7 +521,7 @@ async function deleteSlot(doctorId, slotId) {
     doctor: doctorId,
     date: { $gte: dayStart, $lte: dayEnd },
     timeSlot: label,
-    status: "upcoming",
+    status: { $in: ['upcoming', 'scheduled', 'confirmed'] },
   });
 
   if (bookedAppt) {
@@ -820,7 +820,7 @@ async function cancelDay(doctorId, isoDate) {
       doctor: doctorId,
       date: { $gte: dayStart, $lte: dayEnd },
       timeSlot: label,
-      status: "upcoming",
+      status: { $in: ['upcoming', 'scheduled', 'confirmed'] },
     });
 
     if (isBooked) {
@@ -908,7 +908,7 @@ async function updateSchedule(doctorId, input) {
       doctor: doctor._id,
       date: { $gte: dayStart, $lte: dayEnd },
       timeSlot: label,
-      status: "upcoming"
+      status: { $in: ['upcoming', 'scheduled', 'confirmed'] }
     });
 
     if (!isBooked) {

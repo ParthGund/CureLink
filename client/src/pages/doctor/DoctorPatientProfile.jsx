@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, CalendarDays, History } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, CalendarDays, History, ClipboardList } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import { getMyPatientById } from '../../services/doctorService';
@@ -91,6 +91,33 @@ export default function DoctorPatientProfile() {
                     })
                   : '—'}
               </dd>
+            </div>
+          </dl>
+        </Card>
+
+        {/* Medical History Card */}
+        <Card>
+          <div className="card-heading">
+            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClipboardList size={18} className="text-teal" /> Medical History
+            </h2>
+          </div>
+          <dl className="dr-apt-detail__fields" style={{ padding: '0' }}>
+            <div className="dr-apt-detail__row">
+              <dt>Allergies</dt>
+              <dd>{patient.allergies || 'None reported'}</dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Chronic Conditions</dt>
+              <dd>{patient.chronicConditions || 'None reported'}</dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Past Surgeries</dt>
+              <dd>{patient.surgeries || 'None reported'}</dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Current Medications</dt>
+              <dd>{patient.currentMedications || 'None reported'}</dd>
             </div>
           </dl>
         </Card>

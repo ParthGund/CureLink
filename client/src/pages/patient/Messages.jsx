@@ -1,4 +1,0 @@
-import { MessageSquare, Search } from 'lucide-react';
-import EmptyState from '../../components/common/EmptyState';
-
-export default function Messages() { return <div><header className="page-heading"><h1>Messages</h1><p>Communicate securely with your care team.</p></header><section className="messages-panel"><aside className="conversation-panel"><h2>Conversations</h2><label className="search-field"><Search size={17} /><input type="search" placeholder="Search messages..." aria-label="Search messages" /></label><div className="conversation-empty">Your conversations will appear here.</div></aside><div className="message-empty"><EmptyState icon={MessageSquare} title="No conversation selected" description="Select a conversation from the panel to view your messages and communicate securely with your care team." /></div></section></div>; }

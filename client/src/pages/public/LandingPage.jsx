@@ -59,20 +59,20 @@ export default function LandingPage() {
       <section className="metrics-strip">
         <div className="metrics-strip__container">
           <div className="metric-pill">
-            <span className="metric-pill__value">50+</span>
-            <span className="metric-pill__label">Verified Specialists</span>
+            <span className="metric-pill__value">Verified</span>
+            <span className="metric-pill__label">Specialists</span>
           </div>
           <div className="metric-pill">
-            <span className="metric-pill__value">15k+</span>
-            <span className="metric-pill__label">Patient Consultations</span>
+            <span className="metric-pill__value">Secure</span>
+            <span className="metric-pill__label">Consultations</span>
           </div>
           <div className="metric-pill">
             <span className="metric-pill__value">Zero</span>
             <span className="metric-pill__label">Double Booking</span>
           </div>
           <div className="metric-pill">
-            <span className="metric-pill__value">256-bit</span>
-            <span className="metric-pill__label">Encrypted EMR</span>
+            <span className="metric-pill__value">Encrypted</span>
+            <span className="metric-pill__label">Medical Records</span>
           </div>
         </div>
       </section>
@@ -102,17 +102,17 @@ export default function LandingPage() {
           <div className="feature-card-interactive">
             <div className="feature-card__icon">📅</div>
             <h3>Real-Time Scheduling</h3>
-            <p>Live availability tracking across all specialist calendars (FR-03/FR-04).</p>
+            <p>Live availability tracking across all specialist calendars.</p>
           </div>
           <div className="feature-card-interactive">
             <div className="feature-card__icon">🔒</div>
             <h3>Conflict-Free Locking</h3>
-            <p>Advanced concurrency control ensures no double bookings (FR-05).</p>
+            <p>Advanced concurrency control ensures no double bookings.</p>
           </div>
           <div className="feature-card-interactive">
             <div className="feature-card__icon">📁</div>
             <h3>Centralized Health Records</h3>
-            <p>Unified digital repository for prescriptions and reports (FR-06/FR-07).</p>
+            <p>Unified digital repository for prescriptions and reports.</p>
           </div>
         </div>
       </section>

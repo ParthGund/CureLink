@@ -35,17 +35,7 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
-// ── Rate limiting for auth endpoints ───────────────────────────
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15-minute window
-  max: 20, // 20 attempts per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many requests. Please try again later.',
-  },
-});
+// ── Rate limiting for auth endpoints moved to authRoutes ───────────
 
 // Root endpoint status
 app.get('/api/status', (req, res) => {
@@ -57,7 +47,7 @@ app.get('/api/status', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/admin', adminRoutes);

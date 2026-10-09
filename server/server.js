@@ -64,8 +64,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 
-// Placeholder routes (to be replaced with real route modules)
-app.use('/api/records', (req, res) => res.status(501).json({ message: 'Record endpoints not yet implemented.' }));
 
 // Error handling
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');

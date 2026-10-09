@@ -237,6 +237,7 @@ async function completeConsultation(consultationId, user) {
   // Use a transaction to atomically:
   //   1. Set consultation status to 'completed' + completedAt + prescription ref
   //   2. Set appointment status to 'completed'
+  // Includes fallback for standalone MongoDB instances without replica sets.
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -257,7 +258,23 @@ async function completeConsultation(consultationId, user) {
     await session.commitTransaction();
   } catch (err) {
     await session.abortTransaction();
-    throw err;
+    
+    // Fallback: If MongoDB standalone (no replica set), transactions fail. Use sequential saves.
+    if (err.message && err.message.toLowerCase().includes('replica set')) {
+      consultation.status = 'completed';
+      consultation.completedAt = new Date();
+      if (prescription) {
+        consultation.prescription = prescription._id;
+      }
+      
+      await consultation.save();
+      await Appointment.findByIdAndUpdate(
+        consultation.appointment,
+        { status: 'completed' }
+      );
+    } else {
+      throw err;
+    }
   } finally {
     session.endSession();
   }

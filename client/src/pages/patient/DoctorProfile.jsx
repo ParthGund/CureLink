@@ -7,6 +7,7 @@ import EmptyState from '../../components/common/EmptyState';
 import DoctorAvailability from '../../components/patient/DoctorAvailability';
 import { getDoctorById, getDoctorAvailability } from '../../services/doctorService';
 import { bookAppointment } from '../../services/appointmentService';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDisplayDate } from '../../utils/dateUtils';
 
@@ -31,7 +32,12 @@ export default function DoctorProfile() {
   const [showModal, setShowModal] = useState(false);
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const { user } = useAuth();
+  const hasPhone = !!user?.patient?.phone;
 
   useEffect(() => {
     setLoading(true);
@@ -75,6 +81,8 @@ export default function DoctorProfile() {
     setShowModal(false);
     setReason('');
     setReasonError('');
+    setPhone('');
+    setPhoneError('');
   }
 
   async function handleConfirmBooking() {
@@ -82,6 +90,15 @@ export default function DoctorProfile() {
     if (trimmedReason.length < 5) {
       setReasonError('Please describe your symptoms or reason (at least 5 characters).');
       return;
+    }
+    
+    let trimmedPhone = '';
+    if (!hasPhone) {
+      trimmedPhone = phone.trim();
+      if (!trimmedPhone) {
+        setPhoneError('Phone number is required.');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -91,6 +108,7 @@ export default function DoctorProfile() {
         date: selectedDate,
         timeSlot: selectedSlot,
         reason: trimmedReason,
+        patient: !hasPhone ? { phone: trimmedPhone } : undefined,
       });
       toast.success('Appointment booked successfully!');
       navigate('/patient/appointments');
@@ -307,6 +325,30 @@ export default function DoctorProfile() {
                   <p className="field-error" role="alert">{reasonError}</p>
                 )}
               </div>
+
+              {/* Phone (if missing) */}
+              {!hasPhone && (
+                <div className="booking-confirm-panel__field" style={{ marginTop: '16px' }}>
+                  <label className="field-label" htmlFor="booking-phone">
+                    Phone Number
+                    <span className="field-required" aria-hidden="true"> *</span>
+                  </label>
+                  <input
+                    id="booking-phone"
+                    type="tel"
+                    className={`booking-confirm-panel__input${phoneError ? ' booking-confirm-panel__input--error' : ''}`}
+                    placeholder="Enter your phone number..."
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (phoneError) setPhoneError('');
+                    }}
+                  />
+                  {phoneError && (
+                    <p className="field-error" role="alert">{phoneError}</p>
+                  )}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="modal-actions">

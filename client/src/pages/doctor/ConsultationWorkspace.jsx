@@ -511,6 +511,7 @@ export default function ConsultationWorkspace() {
                 canPrint={canPrint}
                 onPrint={handlePrint}
                 error={rxError}
+                readOnly={isCompleted}
               />
             )}
 
@@ -574,17 +575,7 @@ export default function ConsultationWorkspace() {
               </>
             )}
 
-            {/* Completed: Prescription save only */}
-            {isCompleted && step === 1 && (
-              <button
-                type="button"
-                className="button"
-                onClick={handleSavePrescription}
-                disabled={saving || !rxChanged}
-              >
-                <Save size={15} aria-hidden="true" /> Save prescription
-              </button>
-            )}
+            {/* Completed state: No further actions */}
           </div>
         </Card>
       </div>
@@ -597,7 +588,7 @@ export default function ConsultationWorkspace() {
               <CircleCheck size={40} className="dr-consult-confirm-icon" />
               <h3 className="cancel-modal-title">Complete this consultation?</h3>
               <p className="cancel-modal-desc">
-                You will not be able to edit the assessment afterwards. You can still correct the prescription.
+                You will not be able to edit the assessment or prescription afterwards. Completed records are finalized.
               </p>
               <div className="modal-actions">
                 <button type="button" className="button button--secondary" onClick={() => setConfirmOpen(false)} disabled={completing}>

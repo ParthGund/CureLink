@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Search, Users, Trash2 } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
-import { getPatients, deletePatient } from '../../services/adminService';
+import { getPatients } from '../../services/adminService';
 
 const SKELETON_ROWS = 5;
 
@@ -26,7 +26,7 @@ export default function AdminPatients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
+
 
   function fetchPatients() {
     setLoading(true);
@@ -49,22 +49,6 @@ export default function AdminPatients() {
     );
   }, [patients, search]);
 
-  async function handleDelete(patient) {
-    const confirmed = window.confirm(
-      `Remove ${patient.name || patient.email}?\n\nThis will permanently delete the patient account.`
-    );
-    if (!confirmed) return;
-
-    setDeletingId(patient._id);
-    try {
-      await deletePatient(patient._id);
-      setPatients((prev) => prev.filter((p) => p._id !== patient._id));
-    } catch (err) {
-      alert(err.message || 'Failed to remove patient.');
-    } finally {
-      setDeletingId(null);
-    }
-  }
 
   return (
     <div className="admin-patients-page">
@@ -128,16 +112,9 @@ export default function AdminPatients() {
                     <td>{patient.email}</td>
                     <td>{formatDate(patient.createdAt)}</td>
                     <td>
-                      <button
-                        className="admin-table__remove-btn"
-                        type="button"
-                        disabled={deletingId === patient._id}
-                        onClick={() => handleDelete(patient)}
-                        aria-label={`Remove ${patient.name || patient.email}`}
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                        {deletingId === patient._id ? 'Removing…' : 'Remove'}
-                      </button>
+                      <span className="admin-table__badge" style={{ fontSize: '11px', padding: '4px 8px', background: '#f1f5f9', color: '#64748b', borderRadius: '4px', display: 'inline-block' }}>
+                        Permanent Record (HIPAA/Protected)
+                      </span>
                     </td>
                   </tr>
                 ))

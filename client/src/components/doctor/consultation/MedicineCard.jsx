@@ -11,7 +11,7 @@ const FREQUENCY_CHIPS = ['Once daily', 'Twice daily', 'Three times daily', 'At n
  * @param {function} props.onChange  - Called with (index, field, value).
  * @param {function} props.onRemove - Called with (index).
  */
-export default function MedicineCard({ index, item, onChange, onRemove }) {
+export default function MedicineCard({ index, item, onChange, onRemove, readOnly }) {
   function handleFrequencyChip(chip) {
     onChange(index, 'frequency', chip);
   }
@@ -21,14 +21,16 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
       <div className="dr-consult-med__header">
         <span className="dr-consult-med__badge">{index + 1}</span>
         <span className="dr-consult-med__title">Medicine</span>
-        <button
-          type="button"
-          className="dr-consult-med__remove"
-          onClick={() => onRemove(index)}
-          aria-label="Remove medicine"
-        >
-          <Trash2 size={15} aria-hidden="true" />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="dr-consult-med__remove"
+            onClick={() => onRemove(index)}
+            aria-label="Remove medicine"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="dr-consult-med__body">
@@ -45,6 +47,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               value={item.medicine}
               onChange={(e) => onChange(index, 'medicine', e.target.value)}
               maxLength={100}
+              disabled={readOnly}
             />
           </div>
           <div className="dr-consult-med__field">
@@ -57,6 +60,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               value={item.dosage}
               onChange={(e) => onChange(index, 'dosage', e.target.value)}
               maxLength={100}
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -68,6 +72,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               type="button"
               className={`dr-consult-med__chip ${item.frequency === chip ? 'dr-consult-med__chip--active' : ''}`}
               onClick={() => handleFrequencyChip(chip)}
+              disabled={readOnly}
             >
               {chip}
             </button>
@@ -85,6 +90,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               value={item.frequency}
               onChange={(e) => onChange(index, 'frequency', e.target.value)}
               maxLength={100}
+              disabled={readOnly}
             />
           </div>
           <div className="dr-consult-med__field">
@@ -97,6 +103,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               value={item.duration}
               onChange={(e) => onChange(index, 'duration', e.target.value)}
               maxLength={100}
+              disabled={readOnly}
             />
           </div>
           <div className="dr-consult-med__field">
@@ -110,6 +117,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
               onChange={(e) => onChange(index, 'durationDays', e.target.value)}
               min={1}
               max={365}
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -124,6 +132,7 @@ export default function MedicineCard({ index, item, onChange, onRemove }) {
             value={item.instructions}
             onChange={(e) => onChange(index, 'instructions', e.target.value)}
             maxLength={300}
+            disabled={readOnly}
           />
         </div>
       </div>

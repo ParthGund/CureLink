@@ -213,7 +213,7 @@ async function cancelAppointment(appointmentId, user) {
     throw httpError(400, 'Appointment is already cancelled.');
   }
 
-  if (appointment.status === 'completed' || appointment.status === 'in-progress') {
+  if (appointment.status === 'completed') {
     throw httpError(400, `Cannot cancel an appointment that is ${appointment.status}.`);
   }
 

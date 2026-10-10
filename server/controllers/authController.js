@@ -207,14 +207,16 @@ const updateMe = async (req, res) => {
           userId: user._id,
           fullName: user.name,
           email: user.email,
-          phone: req.body.phone || '0000000000'
+          phone: (req.body.phone && req.body.phone.trim()) ? req.body.phone.trim() : '0000000000'
         });
       } else {
         patient.fullName = user.name;
         patient.email = user.email;
       }
       
-      if (req.body.phone !== undefined) patient.phone = req.body.phone;
+      if (req.body.phone && req.body.phone.trim() !== '') {
+        patient.phone = req.body.phone.trim();
+      }
       if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
       if (req.body.gender !== undefined) patient.gender = req.body.gender;
       if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup;

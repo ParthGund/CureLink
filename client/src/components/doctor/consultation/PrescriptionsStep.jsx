@@ -21,6 +21,7 @@ export default function PrescriptionsStep({
   canPrint,
   onPrint,
   error,
+  readOnly,
 }) {
   return (
     <div className="dr-consult-rx">
@@ -37,14 +38,16 @@ export default function PrescriptionsStep({
               <Printer size={15} aria-hidden="true" /> Print prescription
             </button>
           )}
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={onAdd}
-            disabled={items.length >= 20}
-          >
-            <Plus size={15} aria-hidden="true" /> Add medicine
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={onAdd}
+              disabled={items.length >= 20}
+            >
+              <Plus size={15} aria-hidden="true" /> Add medicine
+            </button>
+          )}
         </div>
       </div>
 
@@ -67,6 +70,7 @@ export default function PrescriptionsStep({
               item={item}
               onChange={onChange}
               onRemove={onRemove}
+              readOnly={readOnly}
             />
           ))}
         </div>

@@ -20,13 +20,15 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const data = await authService.login({ email, password });
-    setUser(data.user);
+    const me = await authService.getMe();
+    setUser(me.user);
     return data;
   }
 
   async function register(name, email, password) {
     const data = await authService.register({ name, email, password });
-    setUser(data.user);
+    const me = await authService.getMe();
+    setUser(me.user);
     return data;
   }
 

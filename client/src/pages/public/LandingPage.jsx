@@ -1,8 +1,20 @@
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LandingPage() {
   const { user, isAuthenticated, loading } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const scrollToSection = (e, id) => {
+    e.preventDefault();
+    setIsMenuOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   
   if (loading) {
     return (
@@ -27,14 +39,25 @@ export default function LandingPage() {
         <div className="glass-nav__brand">
           <span className="glass-nav__logo-icon">✦</span> CureLink
         </div>
-        <div className="glass-nav__links">
-          <a href="#specialties">Departments</a>
-          <a href="#features">Features</a>
-          <a href="#how-it-works">How It Works</a>
-        </div>
-        <div className="glass-nav__actions">
-          <Link to="/login" className="glass-nav__link">Portal Sign In</Link>
-          <Link to="/signup" className="button button--glow">Register Patient</Link>
+
+        <button 
+          className="glass-nav__toggle" 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        <div className={`glass-nav__menu ${isMenuOpen ? 'glass-nav__menu--open' : ''}`}>
+          <div className="glass-nav__links">
+            <a href="#specialties" onClick={(e) => scrollToSection(e, 'specialties')}>Departments</a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')}>Features</a>
+            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')}>How It Works</a>
+          </div>
+          <div className="glass-nav__actions">
+            <Link to="/login" className="glass-nav__link">Portal Sign In</Link>
+            <Link to="/signup" className="button button--glow">Register Patient</Link>
+          </div>
         </div>
       </nav>
 
@@ -44,10 +67,10 @@ export default function LandingPage() {
           <div className="hero-blob hero-blob--2"></div>
         </div>
         <div className="hero-section__content">
-          <div className="hero-badge">Trusted Digital Healthcare Platform</div>
-          <h1>Next-Generation Healthcare Access &amp; Digital Consultations</h1>
+          <div className="hero-badge">Clinical Appointment Portal</div>
+          <h1>Professional Healthcare &amp; Clinical Appointments</h1>
           <p>
-            Connect with verified specialists, book conflict-free appointments, and manage lifelong health records securely.
+            Connect with specialists, book appointments securely, and manage your medical history in one seamless platform.
           </p>
           <div className="hero-section__actions">
             <Link to="/signup" className="button button--glow button--large">Book an Appointment</Link>
@@ -150,8 +173,8 @@ export default function LandingPage() {
           </div>
           <p>Trusted Digital Healthcare Platform</p>
           <div className="glass-footer__links">
-            <a href="#specialties">Departments</a>
-            <a href="#features">Features</a>
+            <a href="#specialties" onClick={(e) => scrollToSection(e, 'specialties')}>Departments</a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')}>Features</a>
             <Link to="/login">Portal Sign In</Link>
           </div>
         </div>

@@ -82,27 +82,23 @@ export default function LandingPage() {
       <section className="metrics-strip">
         <div className="metrics-strip__container">
           <div className="metric-pill">
-            <span className="metric-pill__value">Verified</span>
-            <span className="metric-pill__label">Specialists</span>
-          </div>
-          <div className="metric-pill">
-            <span className="metric-pill__value">Secure</span>
-            <span className="metric-pill__label">Consultations</span>
-          </div>
-          <div className="metric-pill">
-            <span className="metric-pill__value">Zero</span>
-            <span className="metric-pill__label">Double Booking</span>
+            <span className="metric-pill__value">Registered</span>
+            <span className="metric-pill__label">Doctors</span>
           </div>
           <div className="metric-pill">
             <span className="metric-pill__value">Role-Based</span>
-            <span className="metric-pill__label">Medical Access</span>
+            <span className="metric-pill__label">Access</span>
+          </div>
+          <div className="metric-pill">
+            <span className="metric-pill__value">Double-Booking</span>
+            <span className="metric-pill__label">Protection</span>
           </div>
         </div>
       </section>
 
       <section id="specialties" className="landing-section">
         <div className="section-header">
-          <h2>Specialties Showcase</h2>
+          <h2>Departments</h2>
           <p>Expert care across specialized departments</p>
         </div>
         <div className="specialties-grid">
@@ -129,13 +125,13 @@ export default function LandingPage() {
           </div>
           <div className="feature-card-interactive">
             <div className="feature-card__icon">🔒</div>
-            <h3>Conflict-Free Locking</h3>
-            <p>Advanced concurrency control ensures no double bookings.</p>
+            <h3>Double-Booking Protection</h3>
+            <p>Slot availability is checked at booking to prevent overlapping reservations.</p>
           </div>
           <div className="feature-card-interactive">
             <div className="feature-card__icon">📁</div>
             <h3>Centralized Health Records</h3>
-            <p>Unified digital repository for prescriptions and reports.</p>
+            <p>Unified digital repository for prescriptions and consultation records.</p>
           </div>
         </div>
       </section>

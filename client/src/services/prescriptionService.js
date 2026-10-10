@@ -10,13 +10,6 @@ export async function getConsultationPrescription(consultationId) {
   return api(`/prescriptions/consultation/${consultationId}`);
 }
 
-/**
- * Fetch all prescriptions for the authenticated patient (completed consultations only).
- * @returns {Promise<{ success: boolean, prescriptions: object[] }>}
- */
-export async function getPatientPrescriptions() {
-  return api('/prescriptions/me');
-}
 
 /**
  * Create or replace prescription items for a consultation.

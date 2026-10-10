@@ -101,14 +101,7 @@ export async function updateMySlot(id, changes) {
   return data;
 }
 
-/**
- * Delete a single slot.
- * @param {string} id - Slot _id.
- * @returns {Promise<void>}
- */
-export async function deleteMySlot(id) {
-  await api(`/doctors/me/slots/${id}`, { method: 'DELETE' });
-}
+
 
 /**
  * Generate time slots for the next 30 days from the doctor's working-hours pattern.

@@ -68,7 +68,13 @@ export default function Login() {
         />
         <div className="password-label">
           <span>Password</span>
-          <button type="button">Forgot password?</button>
+          <button
+            type="button"
+            onClick={() => toast.info('For password reset, please contact clinic administration.')}
+            title="For password reset, please contact clinic administration."
+          >
+            Forgot password?
+          </button>
         </div>
         <PasswordInput
           id="login-password"

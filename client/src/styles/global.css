@@ -5766,6 +5766,121 @@ select.profile-form__input {
     grid-template-columns: 130px 1fr;
   }
 }
+/* ── Profile Form Section Headings ──────────────────────────── */
+.profile-form__section {
+  margin-top: 8px;
+}
+.profile-form__section:first-child {
+  margin-top: 0;
+}
+.profile-form__section-heading {
+  margin: 24px 0 8px;
+  padding: 0 4px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--slate);
+  border-bottom: 2px solid var(--teal);
+}
+
+/* ── Health Summary Card (Medical History page) ────────────── */
+.mh-health-card {
+  margin-bottom: 24px;
+}
+.mh-health__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.mh-health__title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mh-health__icon-circle {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fdf0f0;
+  color: #c0392b;
+  flex-shrink: 0;
+}
+.mh-health__title {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.45px;
+}
+.mh-health__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--slate);
+}
+.mh-health__grid {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+.mh-health__row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 52px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.mh-health__row:last-child {
+  border-bottom: 0;
+}
+.mh-health__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  color: var(--slate);
+  font-size: 14px;
+  font-weight: 600;
+}
+.mh-health__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.mh-health__badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.mh-health__badge--empty {
+  background: var(--soft-blue) !important;
+  color: var(--slate) !important;
+  border-color: var(--border) !important;
+  font-weight: 500;
+  font-style: italic;
+}
+@media (max-width: 600px) {
+  .mh-health__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mh-health__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px 20px;
+  }
+}
 
 /* ── Spin icon (used in save buttons) ──────────────────────── */
 .spin-icon {

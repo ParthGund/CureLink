@@ -60,13 +60,7 @@ export async function getPatients() {
   return data.patients;
 }
 
-/**
- * Remove a patient user record.
- * @param {string} id - User MongoDB _id (role: patient).
- */
-export async function deletePatient(id) {
-  return api(`/admin/patients/${id}`, { method: 'DELETE' });
-}
+
 
 /**
  * Fetch all appointments with patient and doctor details.

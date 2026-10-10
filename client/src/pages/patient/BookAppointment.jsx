@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronLeft } from "lucide-react";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
-import { getDoctors, getAvailableSlots, bookAppointment } from "../../services/appointmentService";
+import { getAvailableSlots, bookAppointment } from "../../services/appointmentService";
+import { getDoctors } from "../../services/doctorService";
 import { useToast } from "../../context/ToastContext";
 
 export default function BookAppointment() {

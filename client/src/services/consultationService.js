@@ -21,10 +21,10 @@ export async function getDoctorConsultations() {
 }
 
 /**
- * Fetch completed consultations for the authenticated patient.
+ * Fetch consultations for the authenticated patient.
  * @returns {Promise<{ success: boolean, consultations: object[] }>}
  */
-export async function getPatientConsultations() {
+export async function getMyConsultations() {
   return api('/consultations/me');
 }
 
@@ -57,12 +57,4 @@ export async function saveConsultation(id, payload) {
  */
 export async function completeConsultation(id) {
   return api(`/consultations/${id}/complete`, { method: 'PUT' });
-}
-
-/**
- * Fetch completed consultations for the authenticated patient.
- * @returns {Promise<{ success: boolean, consultations: object[] }>}
- */
-export async function getMyConsultations() {
-  return api('/consultations/me');
 }

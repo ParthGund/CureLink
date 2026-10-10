@@ -1,13 +1,6 @@
 import api from './api';
 
-/**
- * Fetch all registered doctors.
- * @returns {Promise<object[]>} Array of doctor documents.
- */
-export async function getDoctors() {
-  const data = await api('/doctors');
-  return data.doctors;
-}
+
 
 /**
  * Fetch available time slots for a doctor on a given date.

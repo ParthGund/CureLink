@@ -35,9 +35,8 @@ export default function DoctorProfile() {
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
   const { user } = useAuth();
-  const hasPhone = !!user?.patient?.phone;
+  const hasPhone = !!user?.patient?.phone && user.patient.phone !== '0000000000';
 
   useEffect(() => {
     setLoading(true);

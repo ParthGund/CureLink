@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Users, Trash2 } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import { getPatients } from '../../services/adminService';
@@ -113,7 +113,7 @@ export default function AdminPatients() {
                     <td>{formatDate(patient.createdAt)}</td>
                     <td>
                       <span className="admin-table__badge" style={{ fontSize: '11px', padding: '4px 8px', background: '#f1f5f9', color: '#64748b', borderRadius: '4px', display: 'inline-block' }}>
-                        Permanent Record (HIPAA/Protected)
+                        Medical Record Retained
                       </span>
                     </td>
                   </tr>

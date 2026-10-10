@@ -163,6 +163,7 @@ const getMe = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         createdAt: user.createdAt,
         patient: patientData,
@@ -192,6 +193,11 @@ const updateMe = async (req, res) => {
     if (req.body.name) user.name = req.body.name.trim();
     if (req.body.email) user.email = req.body.email.trim().toLowerCase();
     
+    // Set user.phone if a valid string is provided
+    if (req.body.phone && typeof req.body.phone === 'string' && req.body.phone.trim() !== '') {
+      user.phone = req.body.phone.trim();
+    }
+    
     // We do NOT update passwords or roles here.
 
     await user.save();
@@ -207,15 +213,15 @@ const updateMe = async (req, res) => {
           userId: user._id,
           fullName: user.name,
           email: user.email,
-          phone: (req.body.phone && req.body.phone.trim()) ? req.body.phone.trim() : '0000000000'
+          phone: user.phone
         });
       } else {
         patient.fullName = user.name;
         patient.email = user.email;
       }
       
-      if (req.body.phone && req.body.phone.trim() !== '') {
-        patient.phone = req.body.phone.trim();
+      if (user.phone) {
+        patient.phone = user.phone;
       }
       if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
       if (req.body.gender !== undefined) patient.gender = req.body.gender;
@@ -238,6 +244,7 @@ const updateMe = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         createdAt: user.createdAt,
         patient: patientData,

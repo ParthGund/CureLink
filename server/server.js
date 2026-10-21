@@ -1,11 +1,20 @@
 // CureLink Server
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Startup environment variable validation
+['MONGO_URI', 'JWT_SECRET', 'CLIENT_URL'].forEach(k => {
+  if (!process.env[k]) {
+    console.error(`Missing required environment variable: ${k}`);
+    process.exit(1);
+  }
+});
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -16,6 +25,7 @@ const consultationRoutes = require('./routes/consultationRoutes');
 const prescriptionRoutes = require('./routes/prescriptionRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // ── Security headers ───────────────────────────────────────────
@@ -41,7 +51,7 @@ app.use(cookieParser());
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
-    phase: 'Phase 4 - Core Features',
+    phase: 'operational',
     timestamp: new Date().toISOString(),
   });
 });
@@ -54,6 +64,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 
+// Serve client static build files in production for single-origin deployment
+const clientDist = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDist));
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
 
 // Error handling
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Clock, CircleCheck, Eye } from 'lucide-react';
+import { Clock, CircleCheck, Eye } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import { getDoctorConsultations } from '../../services/consultationService';

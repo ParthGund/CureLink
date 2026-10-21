@@ -14,7 +14,6 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -44,8 +43,6 @@ app.use(cors({
 // ── Body parsing with size limit ───────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-
-// ── Rate limiting for auth endpoints moved to authRoutes ───────────
 
 // Root endpoint status
 app.get('/api/status', (req, res) => {
@@ -78,6 +75,10 @@ app.use(errorHandler);
 
 // Connect to database, then start server
 connectDB().then(() => {
+  // Start background job: mark stale "scheduled" appointments as "missed"
+  const { startMissedAppointmentJob } = require('./services/missedAppointmentJob');
+  startMissedAppointmentJob();
+
   app.listen(PORT, () => {
     console.log(`CureLink server running on port ${PORT}`);
   });

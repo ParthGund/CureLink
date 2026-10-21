@@ -7,6 +7,7 @@ const STATUS_LABELS = {
   confirmed: 'Confirmed',
   completed: 'Completed',
   cancelled: 'Cancelled',
+  missed:    'Missed',
 };
 
 /**

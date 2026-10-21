@@ -1,6 +1,7 @@
-import { Bell, LogOut, ShieldPlus } from 'lucide-react';
+import { LogOut, ShieldPlus } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationDropdown from './NotificationDropdown';
 
 const roleNavigation = {
   doctor: [
@@ -41,7 +42,7 @@ export default function RoleLayout({ role }) {
           ))}
         </nav>
         <div className="top-nav__actions">
-          <button className="icon-button" type="button" aria-label="Notifications"><Bell size={21} /></button>
+          {role === 'doctor' && <NotificationDropdown />}
           <NavLink className="profile-dot" to={`${prefix}/profile`} aria-label="Your profile">
             {role === 'doctor' ? 'D' : 'A'}
           </NavLink>

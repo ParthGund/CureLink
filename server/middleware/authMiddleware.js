@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 /**
  * Protect routes — verify JWT and attach user to request.
- * Accepts token from either cookies or Authorization header.
+ * The JWT is read from the httpOnly "jwt" cookie only.
  */
 const protect = async (req, res, next) => {
   let token;

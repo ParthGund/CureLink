@@ -1,6 +1,7 @@
-import { Bell, LogOut, ShieldPlus } from 'lucide-react';
+import { LogOut, ShieldPlus } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationDropdown from './NotificationDropdown';
 
 const navigation = [
   { label: 'Dashboard', to: '/patient/dashboard' },
@@ -28,7 +29,7 @@ export default function PatientLayout() {
           {navigation.map((item) => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
         </nav>
         <div className="top-nav__actions">
-          <button className="icon-button" type="button" aria-label="Notifications"><Bell size={21} /></button>
+          <NotificationDropdown />
           <NavLink className="profile-dot" to="/patient/profile" aria-label="Your profile">P</NavLink>
           <button className="icon-button" type="button" aria-label="Log out" onClick={handleLogout}><LogOut size={19} /></button>
         </div>

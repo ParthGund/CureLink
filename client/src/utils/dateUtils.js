@@ -1,6 +1,5 @@
 /**
- * Date utility functions for the patient-facing doctor browsing and schedule views.
- * Prompt 04 also imports these exports — keep them stable.
+ * Date helpers shared by the patient browsing, booking and dashboard views.
  */
 
 /**

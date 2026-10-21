@@ -4324,6 +4324,10 @@ select.modal-input {
   background: #FEE2E2;
   color: #DC2626;
 }
+.dr-apt-status--missed {
+  background: #FEE2E2;
+  color: #DC2626;
+}
 
 /* View button */
 .dr-apt-view-btn {
@@ -5941,4 +5945,233 @@ select.profile-form__input {
 /* ── Spin icon (used in save buttons) ──────────────────────── */
 .spin-icon {
   animation: spin 0.7s linear infinite;
+}
+
+.dashboard-record-summary { min-height: 160px; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 28px 24px; }
+.dashboard-record-summary h3 { margin: 0; font-size: 18px; }
+.dashboard-record-summary p { margin: 0; color: var(--slate); font-size: 15px; line-height: 1.5; }
+
+/* ── Notification Dropdown (FR-09) ─────────────────────────────── */
+.notif-dropdown {
+  position: relative;
+}
+
+.notif-dropdown__trigger {
+  position: relative;
+}
+
+.notif-dropdown__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  background: #e53e3e;
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+
+.notif-dropdown__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -12px;
+  z-index: 900;
+  width: 370px;
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow:
+    0 8px 30px rgb(16 35 61 / 10%),
+    0 2px 8px rgb(16 35 61 / 6%);
+  animation: notif-panel-in 0.18s ease-out;
+  overflow: hidden;
+}
+
+@keyframes notif-panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.notif-dropdown__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notif-dropdown__header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--navy);
+}
+
+.notif-dropdown__clear {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.notif-dropdown__clear:hover {
+  background: var(--soft-blue);
+}
+
+.notif-dropdown__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 20px;
+  color: var(--slate);
+}
+
+.notif-dropdown__empty p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.notif-dropdown__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.notif-item:hover {
+  background: var(--soft-blue);
+}
+
+.notif-item + .notif-item {
+  margin-top: 2px;
+}
+
+.notif-item__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+
+/* Type-based icon colors */
+.notif-item--today .notif-item__icon {
+  background: #fef3cd;
+  color: #92600a;
+}
+
+.notif-item--missed .notif-item__icon {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.notif-item--upcoming .notif-item__icon {
+  background: #d1f5f0;
+  color: var(--teal-dark);
+}
+
+.notif-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.notif-item__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.15px;
+}
+
+.notif-item__text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item__date {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a9bb5;
+  margin-top: 2px;
+}
+
+.notif-item__dismiss {
+  flex-shrink: 0;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8a9bb5;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.notif-item:hover .notif-item__dismiss {
+  opacity: 1;
+}
+
+.notif-item__dismiss:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--navy);
+}
+
+/* Missed status badge for AppointmentCard */
+.appointment-card__status--missed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+@media (max-width: 460px) {
+  .notif-dropdown__panel {
+    position: fixed;
+    top: 72px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100vh - 90px);
+  }
 }

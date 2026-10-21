@@ -246,6 +246,19 @@ const deleteDoctor = async (req, res) => {
       });
     }
 
+    // Guard: reject if the doctor has any active/upcoming appointments
+    const activeCount = await Appointment.countDocuments({
+      doctor: doctor._id,
+      status: { $in: ['scheduled', 'confirmed', 'upcoming'] },
+    });
+
+    if (activeCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete this doctor because they have ${activeCount} active/upcoming appointment(s). Cancel or complete them first.`,
+      });
+    }
+
     // Remove the linked User record if it exists
     if (doctor.user) {
       await User.findByIdAndDelete(doctor.user);
@@ -326,12 +339,12 @@ const getAllAppointments = async (req, res) => {
 const updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming'];
+    const validStatuses = ['scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming', 'missed'];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status. Allowed values are: scheduled, confirmed, completed, cancelled, upcoming.',
+        message: 'Invalid status. Allowed values are: scheduled, confirmed, completed, cancelled, upcoming, missed.',
       });
     }
 
@@ -340,6 +353,15 @@ const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Appointment not found.',
+      });
+    }
+
+    // Guard: terminal states cannot revert to "scheduled"
+    const TERMINAL = ['cancelled', 'completed', 'missed'];
+    if (TERMINAL.includes(appointment.status) && status === 'scheduled') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot revert a ${appointment.status} appointment back to scheduled.`,
       });
     }
 

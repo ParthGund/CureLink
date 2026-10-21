@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarClock, CalendarCheck, History, Ban, Search, ChevronDown, Eye } from 'lucide-react';
+import { CalendarClock, CalendarCheck, History, Ban, Search, Eye } from 'lucide-react';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentDetailModal from '../../components/doctor/AppointmentDetailModal';

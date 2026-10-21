@@ -18,20 +18,24 @@ const getPlatformStats = async (req, res) => {
       totalPatients,
       totalAppointments,
       pendingAppointments,
+      upcomingCount,
       scheduledCount,
       confirmedCount,
       completedCount,
       cancelledCount,
+      missedCount,
       recentAppointments,
     ] = await Promise.all([
       Doctor.countDocuments(),
       User.countDocuments({ role: 'patient' }),
       Appointment.countDocuments(),
       Appointment.countDocuments({ status: { $in: ['upcoming', 'scheduled', 'confirmed'] } }),
+      Appointment.countDocuments({ status: 'upcoming' }),
       Appointment.countDocuments({ status: 'scheduled' }),
       Appointment.countDocuments({ status: 'confirmed' }),
       Appointment.countDocuments({ status: 'completed' }),
       Appointment.countDocuments({ status: 'cancelled' }),
+      Appointment.countDocuments({ status: 'missed' }),
       Appointment.find()
         .populate('patient', 'fullName')
         .populate('doctor', 'name specialization')
@@ -48,10 +52,12 @@ const getPlatformStats = async (req, res) => {
         totalAppointments,
         pendingAppointments,
         statusBreakdown: {
+          upcoming: upcomingCount,
           scheduled: scheduledCount,
           confirmed: confirmedCount,
           completed: completedCount,
           cancelled: cancelledCount,
+          missed: missedCount,
         },
         recentAppointments,
       },
@@ -356,12 +362,13 @@ const updateAppointmentStatus = async (req, res) => {
       });
     }
 
-    // Guard: terminal states cannot revert to "scheduled"
+    // Guard: terminal states cannot revert to any active status
     const TERMINAL = ['cancelled', 'completed', 'missed'];
-    if (TERMINAL.includes(appointment.status) && status === 'scheduled') {
+    const ACTIVE = ['scheduled', 'confirmed', 'upcoming'];
+    if (TERMINAL.includes(appointment.status) && ACTIVE.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot revert a ${appointment.status} appointment back to scheduled.`,
+        message: `Cannot revert a ${appointment.status} appointment back to an active status (${status}).`,
       });
     }
 

@@ -1,7 +1,7 @@
 import { LogOut, ShieldPlus } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import NotificationDropdown from './NotificationDropdown';
+import NotificationDropdown from '../common/NotificationDropdown';
 
 const roleNavigation = {
   doctor: [

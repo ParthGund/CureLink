@@ -90,6 +90,7 @@ npm run client-dev            # UI on http://localhost:5173
 | `JWT_EXPIRE` | server | Token lifetime, default `7d` |
 | `NODE_ENV` | server | `production` enables secure cookies and the helmet CSP |
 | `PORT` | server | Defaults to 5000 (set automatically on most hosts) |
+| `CLINIC_TZ_OFFSET` | server | Optional: timezone offset for local clinic calculations (e.g. `+05:30`, `330`, or `5.5`) |
 | `VITE_API_URL` | client, build time | API base URL, for example `http://localhost:5000/api`, or `/api` when the API serves the client |
 
 The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. Real credentials must never be committed; only the `.env.example` files are tracked.
@@ -214,7 +215,7 @@ Errors are returned as JSON with `success: false` and a `message`; validation er
 | **Patient** | fullName, email, phone, dateOfBirth, gender, bloodGroup, address, emergencyContact, allergies, chronicConditions, surgeries, currentMedications, `userId` | Created on first booking or first profile save |
 | **Doctor** | name, specialization, email, experience, qualifications, bio, languages, workingDays, workingHours, slotDurationMinutes, breakTime, offDates, `user` | Linked to a User with role `doctor` |
 | **Slot** | doctor, date, startTime, endTime, status (`open` / `cancelled`), isManual | Unique per doctor, date and start time |
-| **Appointment** | patient, doctor, date, timeSlot, status, reason, notes | Statuses: upcoming, scheduled, confirmed, completed, cancelled |
+| **Appointment** | patient, doctor, date, timeSlot, status, reason, notes | Statuses: upcoming, scheduled, confirmed, completed, cancelled, missed |
 | **Consultation** | appointment (unique), patient, doctor, status (`in_progress` / `completed`), chiefComplaint, diagnosis, clinicalNotes, treatmentPlan, followUpDate, followUpInstructions, prescription, completedAt | One per appointment |
 | **Prescription** | consultation (unique), patient, doctor, items[medicine, dosage, frequency, duration, durationDays, instructions] | One per consultation |
 
@@ -246,9 +247,23 @@ Booking first recomputes the free slots for that doctor and date (working hours,
 - Immutability of completed records is enforced in the service layer, not by database constraints.
 - Cancelling an appointment is refused once its consultation is `in_progress` or `completed`.
 
-### Reminders (FR-09)
+### Reminders and Notifications (FR-09)
 
-The patient dashboard shows a dismissible banner for an appointment coming up within 24 hours, and a "next appointment" card. There is no email delivery and no reminder for doctors yet.
+- **On-Screen Notification Bell (`NotificationDropdown`):** Present in the navigation header for both patients and doctors. Aggregates appointment reminders dynamically for visits scheduled today, active appointments within the next 24–48 hours, and missed consultations. Features click-outside closing, `Escape` key support, item-level navigation to appointment oversight, and session-persisted dismissals.
+- **Patient Dashboard Banner:** The patient dashboard displays an alert banner for consultations coming up within 24 hours, plus a quick-access "next appointment" card.
+
+### Automated "Missed" Appointment Sweeper
+
+A background job (`missedAppointmentJob.js`) runs upon server startup and repeats every 15 minutes:
+- Sweeps past appointments with status `scheduled` whose date and slot end time have passed, automatically transitioning them to `missed`.
+- Respects `process.env.CLINIC_TZ_OFFSET` to determine the clinic's local midnight and wall-clock time.
+- Excludes appointments that already have an associated `Consultation` document (either `in_progress` or `completed`).
+
+### Admin Lifecycle Guards (FR-10)
+
+- **State Transitions:** Strict lifecycle constraints prevent any terminal appointment (`cancelled`, `completed`, or `missed`) from being reverted back to an active status (`scheduled`, `confirmed`, or `upcoming`) via the admin panel.
+- **Doctor Deletion Guard:** An admin cannot delete a doctor profile if active or upcoming appointments (`scheduled`, `confirmed`, `upcoming`) remain linked to that doctor; the request is rejected with `409 Conflict`.
+- **Missed Status Oversight:** Missed appointments appear in the admin status filter, are tracked in dashboard metric breakdowns, and are rendered in a protected read-only state without action buttons.
 
 ---
 
@@ -263,8 +278,8 @@ The patient dashboard shows a dismissible banner for an appointment coming up wi
 | FR-06 medical history | Patient medical profile (`PUT /auth/me`), `MedicalHistory.jsx` |
 | FR-07 diagnosis and prescription | `consultationService`, `prescriptionService`, `ConsultationWorkspace.jsx` |
 | FR-08 dashboards | Patient, doctor and admin dashboard pages |
-| FR-09 reminders | Patient dashboard banners |
-| FR-10 admin panel | `adminController`, `pages/admin` |
+| FR-09 reminders | Patient dashboard banner, NotificationDropdown (patient & doctor), missed sweeper |
+| FR-10 admin panel | `adminController`, `pages/admin`, lifecycle & conflict guards |
 | FR-11 responsive UI | `global.css` breakpoints (desktop and tablet) |
 
 ---
@@ -296,15 +311,10 @@ The Express server also serves the built client from `client/dist`, so the API a
 
 ## Known limitations
 
-These are tracked for the final sprint:
-
-- Admin appointment status changes do not apply the same lifecycle checks as patient or doctor cancellation.
-- Deleting a doctor does not yet block when appointments or clinical records reference that doctor.
-- Past appointments that were never started stay in an active status; there is no "missed" state.
-- Dates are stored as UTC midnight and "today" uses the server clock, so behaviour near midnight depends on the server timezone.
-- Reminders are on-screen only and patient-only.
-- There are no automated tests yet; verification is manual (see checklist above).
-- The legacy `GET /api/appointments/patient/:patientId` endpoint is not used by the client.
+- **Notifications:** Reminders are on-screen in-app notifications only; external SMS and email dispatch gateways are not integrated.
+- **Testing:** Automated end-to-end and unit test suites are slated for future development; verification is performed via the manual acceptance checklist above.
+- **Patient Deletion:** Hard deletion of patient records is deliberately disabled (`501 Not Implemented`) to preserve clinical history and prevent orphaned consultations.
+- **Legacy Endpoint:** The legacy `GET /api/appointments/patient/:patientId` endpoint is retained for API backward compatibility but not consumed by the current client.
 
 ---
 

@@ -133,6 +133,12 @@
                     <span className="admin-status-badge admin-status-badge--cancelled">Cancelled</span>
                     <span className="admin-breakdown-count">{breakdown.cancelled}</span>
                   </div>
+                  {breakdown.missed !== undefined && (
+                    <div className="admin-breakdown-item">
+                      <span className="admin-status-badge admin-status-badge--missed">Missed</span>
+                      <span className="admin-breakdown-count">{breakdown.missed}</span>
+                    </div>
+                  )}
                 </div>
               </Card>
             )}

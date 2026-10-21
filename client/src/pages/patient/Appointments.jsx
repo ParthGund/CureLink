@@ -14,6 +14,7 @@ const TABS = [
   { key: 'all',       label: 'All' },
   { key: 'upcoming',  label: 'Upcoming' },
   { key: 'completed', label: 'Completed' },
+  { key: 'missed',    label: 'Missed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -133,6 +134,10 @@ export default function PatientAppointments() {
         return allAppointments.filter((a) => ACTIVE_STATUSES.has(a.status));
       case 'completed':
         return allAppointments.filter((a) => a.status === 'completed');
+      case 'past':
+        return allAppointments.filter((a) => a.status === 'completed' || a.status === 'missed');
+      case 'missed':
+        return allAppointments.filter((a) => a.status === 'missed');
       case 'cancelled':
         return allAppointments.filter((a) => a.status === 'cancelled');
       default:
@@ -145,9 +150,11 @@ export default function PatientAppointments() {
     all:       { title: 'No appointments yet',       desc: 'Book your first appointment to get started.' },
     upcoming:  { title: 'No upcoming appointments',  desc: 'Your scheduled consultations will appear here.' },
     completed: { title: 'No completed visits',       desc: 'Past consultations will appear here after they complete.' },
+    past:      { title: 'No past consultations',     desc: 'Completed or missed visits will appear here.' },
+    missed:    { title: 'No missed appointments',    desc: 'You have no missed appointments on record.' },
     cancelled: { title: 'No cancelled appointments', desc: 'Cancelled appointments will appear here.' },
   };
-  const empty = emptyConfig[activeTab];
+  const empty = emptyConfig[activeTab] || emptyConfig.all;
 
   // ── Cancel flow ───────────────────────────────────────────────
   function handleCancelRequest(appointment) {

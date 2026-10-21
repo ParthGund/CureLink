@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 
 const SKELETON_ROWS = 5;
 
-const STATUS_OPTIONS = ['all', 'scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming'];
+const STATUS_OPTIONS = ['all', 'scheduled', 'confirmed', 'completed', 'cancelled', 'upcoming', 'missed'];
 
 /**
  * Format an ISO date string into a readable short date.
@@ -303,7 +303,7 @@ export default function AdminAppointments() {
                     apt.status === 'scheduled' || apt.status === 'upcoming';
                   const isConfirmed = apt.status === 'confirmed';
                   const isFinal =
-                    apt.status === 'completed' || apt.status === 'cancelled';
+                    apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'missed';
 
                   return (
                     <tr key={apt._id}>
@@ -379,9 +379,9 @@ export default function AdminAppointments() {
                           {/* Final states → read-only badge */}
                           {isFinal && (
                             <span
-                              className={`admin-apt-done${apt.status === 'cancelled' ? ' admin-apt-done--cancelled' : ''}`}
+                              className={`admin-apt-done${apt.status === 'cancelled' ? ' admin-apt-done--cancelled' : ''}${apt.status === 'missed' ? ' admin-apt-done--missed' : ''}`}
                             >
-                              {apt.status === 'completed' ? 'Done' : 'Cancelled'}
+                              {apt.status === 'completed' ? 'Done' : apt.status === 'cancelled' ? 'Cancelled' : 'Missed'}
                             </span>
                           )}
                         </div>

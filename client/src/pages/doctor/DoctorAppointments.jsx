@@ -12,6 +12,7 @@ const TAB_OPTIONS = [
   { key: 'today', label: 'Today' },
   { key: 'upcoming', label: 'Upcoming' },
   { key: 'completed', label: 'Completed' },
+  { key: 'missed', label: 'Missed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
@@ -89,13 +90,15 @@ export default function DoctorAppointments() {
     today.setHours(0, 0, 0, 0);
     const todayMs = today.getTime();
 
-    const result = { upcoming: [], today: [], completed: [], cancelled: [] };
+    const result = { upcoming: [], today: [], completed: [], missed: [], cancelled: [] };
 
     for (const apt of appointments) {
       const dayMs = getAppointmentDay(apt);
 
       if (apt.status === 'cancelled') {
         result.cancelled.push(apt);
+      } else if (apt.status === 'missed') {
+        result.missed.push(apt);
       } else if (apt.status === 'completed') {
         result.completed.push(apt);
       } else if (dayMs === todayMs) {
@@ -103,8 +106,8 @@ export default function DoctorAppointments() {
       } else if (dayMs > todayMs) {
         result.upcoming.push(apt);
       } else {
-        // Past non-completed/non-cancelled → show in completed
-        result.completed.push(apt);
+        // Past appointments that were not completed are categorized as missed
+        result.missed.push(apt);
       }
     }
 
@@ -192,6 +195,7 @@ export default function DoctorAppointments() {
     upcoming: categorised.upcoming.length,
     today: categorised.today.length,
     completed: categorised.completed.length,
+    missed: categorised.missed.length,
     cancelled: categorised.cancelled.length,
   };
 
@@ -211,6 +215,11 @@ export default function DoctorAppointments() {
       title: 'No completed appointments',
       description: 'Your completed consultations will appear here.',
     },
+    missed: {
+      icon: Ban,
+      title: 'No missed appointments',
+      description: 'Missed consultations will appear here.',
+    },
     cancelled: {
       icon: Ban,
       title: 'No cancelled appointments',
@@ -218,7 +227,7 @@ export default function DoctorAppointments() {
     },
   };
 
-  const currentEmpty = emptyMessages[activeTab];
+  const currentEmpty = emptyMessages[activeTab] || emptyMessages.today;
 
   return (
     <div>

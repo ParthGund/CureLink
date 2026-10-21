@@ -745,6 +745,10 @@ select.modal-input {
   background: #fdf0f0;
   color: #8b2d36;
 }
+.admin-status-badge--missed {
+  background: #fdf0f0;
+  color: #8b2d36;
+}
 
 /* ── Appointment Action Buttons ─────────────────────────────── */
 .admin-apt-actions {
@@ -796,6 +800,9 @@ select.modal-input {
   float: right;
 }
 .admin-apt-done--cancelled {
+  color: #8b2d36;
+}
+.admin-apt-done--missed {
   color: #8b2d36;
 }
 

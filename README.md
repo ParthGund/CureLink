@@ -1,339 +1,316 @@
 # CureLink
 
-CureLink is a MERN-stack healthcare web application for managing appointments, clinical consultations, prescriptions, medical records, and healthcare administration.
+CureLink is a MERN-stack web portal for booking doctor appointments, recording consultations and prescriptions, and keeping patient medical records. It is built against SRS **HEA-WEB-2026-052-SRS-v1.2**.
 
-The system supports three primary roles:
+Three roles are supported:
 
-- **Patient** — book appointments, view medical history, manage prescriptions
-- **Doctor** — manage schedules, conduct consultations, record diagnoses and prescriptions
-- **Administrator** — oversee doctors, patients, appointments, and platform analytics
-
----
-
-## Clinical Workflow
-
-CureLink implements a complete, end-to-end clinical workflow:
-
-```text
-Booking → Consultation → Diagnosis & Treatment → Prescription → Patient Medical History
-```
-
-1. **Booking** — Patients browse doctors by specialization, view real-time slot availability, and book appointments. Double-booking is prevented at both the application and database level.
-2. **Consultation** — Doctors start a consultation from an appointment. The workspace captures chief complaint, examination findings, diagnosis, and treatment plan.
-3. **Diagnosis & Treatment** — Structured clinical data (diagnoses, notes, assessment) is recorded within the consultation and becomes immutable once completed.
-4. **Prescription** — Medications are prescribed during the consultation with dosage, frequency, duration, and instructions. Prescriptions are linked to the consultation record.
-5. **Patient Medical History** — Completed consultations, diagnoses, and prescriptions appear in the patient's medical history timeline, accessible to both the patient and their treating doctors.
+- **Patient**: browse doctors, book a slot, keep a medical profile, view consultation history and prescriptions.
+- **Doctor**: publish a weekly schedule, see booked appointments, run consultations, record a diagnosis and prescription.
+- **Administrator**: manage doctor profiles and appointments, and monitor platform activity.
 
 ---
 
-## Key Features (SRS Alignment)
-
-| Requirement | Implementation |
-|---|---|
-| **Double-Booking Protection** | Explicit conflict check before insert + unique compound index on the Appointment model prevents concurrent booking of the same time slot |
-| **Role-Based Access Control** | `protect` + `authorize` middleware enforces role restrictions on every API route (patient, doctor, admin) |
-| **Consultation Immutability** | Completed consultations cannot be modified; the `completeConsultation` service marks status as `completed` and locks further edits |
-| **Atomic Consultation Completion** | Consultation completion atomically updates both the consultation record and the linked appointment status |
-| **Prescription Upsert** | `findOneAndUpdate` with `upsert: true` ensures exactly one prescription per consultation, preventing duplicates |
-| **In-App Reminders (FR-09)** | Patient dashboard displays a highlighted, dismissible banner for appointments within the next 24 hours |
-| **Profile Management (FR-01)** | Shared profile page with view/edit mode for both patient and doctor roles, connected to `PUT /api/auth/me` |
-| **Schedule Management** | Doctors define weekly working hours; slots are auto-generated and can be individually managed or bulk-cancelled |
-| **Rate Limiting** | Auth endpoints are rate-limited (20 requests per 15-minute window) via `express-rate-limit` |
-| **Security Headers** | Helmet middleware applies security headers; CSP is enforced in production mode |
-
----
-
-## Project Structure
-
-```text
-CureLink/
-│
-├── client/                          # Frontend — React (Vite)
-│   └── src/
-│       ├── components/              # Reusable UI components
-│       │   ├── common/              # Button, Card, EmptyState, Modal
-│       │   ├── layout/              # Navbar, navigation
-│       │   ├── patient/             # AppointmentCard, MedicalRecordCard
-│       │   ├── doctor/              # Doctor-specific components
-│       │   └── admin/               # Admin-specific components
-│       ├── pages/
-│       │   ├── auth/                # Login, Register
-│       │   ├── patient/             # Dashboard, Appointments, BookAppointment,
-│       │   │                        # Doctors, DoctorProfile, MedicalHistory
-│       │   ├── doctor/              # DoctorDashboard, Schedule, Appointments,
-│       │   │                        # ConsultationWorkspace, Patients, Consultations
-│       │   ├── admin/               # AdminDashboard, Doctors, Patients, Appointments
-│       │   └── shared/              # Profile (view/edit)
-│       ├── context/                 # AuthContext, ToastContext
-│       ├── services/                # API service modules
-│       ├── routes/                  # Route definitions
-│       ├── hooks/                   # Custom React hooks
-│       ├── utils/                   # Utilities (dateUtils, etc.)
-│       └── styles/                  # global.css
-│
-├── server/                          # Backend — Express + MongoDB
-│   ├── config/                      # Database connection (db.js)
-│   ├── controllers/                 # Route handlers
-│   ├── models/                      # Mongoose schemas
-│   │   ├── User.js                  # Base user (name, email, password, role)
-│   │   ├── Patient.js               # Extended patient profile (allergies, conditions, surgeries, meds)
-│   │   ├── Doctor.js                # Extended doctor profile
-│   │   ├── Appointment.js           # Appointment records
-│   │   ├── Slot.js                  # Doctor availability slots
-│   │   ├── Consultation.js          # Clinical consultation records
-│   │   └── Prescription.js          # Medication prescriptions
-│   ├── routes/                      # Express route definitions
-│   ├── services/                    # Business logic layer
-│   ├── middleware/                   # Auth, error handling
-│   ├── validators/                  # Input validation
-│   ├── scripts/                     # CLI utilities (createAdmin, seedDoctors)
-│   └── server.js                    # Application entry point
-│
-├── .env.example                     # Environment variable template
-├── package.json                     # Root workspace scripts
-└── README.md
-```
-
----
-
-## Technology Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, React Router, Vite |
-| Styling | Vanilla CSS (BEM naming) |
-| Backend | Node.js, Express.js |
-| Database | MongoDB, Mongoose |
-| Authentication | JWT (HTTP-only cookies) |
-| Security | Helmet, express-rate-limit, bcryptjs |
-| Dev Tools | Nodemon, Vite HMR |
+| Frontend | React 19, React Router, Vite, lucide-react |
+| Backend | Node.js, Express 4, Mongoose 8 |
+| Database | MongoDB (Atlas or a replica set; 6.0+ recommended) |
+| Auth | JWT stored in an httpOnly cookie, bcryptjs password hashing |
+| Security middleware | helmet, cors, express-rate-limit (login and register), cookie-parser |
 
 ---
 
-## Data Models (SRS Section 8)
-
-The application revolves around the following core entities:
-- **User**: Base authentication profile with role (`patient`, `doctor`, `admin`) and credentials.
-- **Patient**: Extended clinical profile including allergies, chronic conditions, surgeries, and current medications.
-- **Doctor**: Professional profile defining specialization, experience, and weekly working hours.
-- **Appointment**: Record of a booked visit between a patient and doctor for a specific date and time slot.
-- **Slot**: Individual 15-30 minute interval that a doctor is available for booking.
-- **Consultation**: Clinical record capturing chief complaint, diagnosis, and treatment plan for an appointment.
-- **Prescription**: Medication details (dosage, frequency, duration) linked to a specific consultation.
-
----
-
-## API Endpoint Reference
-
-All endpoints are prefixed with `/api`. Protected routes require an authenticated session (JWT cookie).
-
-### Auth & Profile (`/api/auth`)
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/register` | — | Register a new patient account |
-| `POST` | `/login` | — | Log in and receive a session cookie |
-| `POST` | `/logout` | — | Log out and clear the session cookie |
-| `GET` | `/me` | Yes | Get the current user's profile |
-| `PUT` | `/me` | Yes | Update the current user's profile |
-
-### Appointments (`/api/appointments`)
-
-| Method | Endpoint | Auth | Roles | Description |
-|---|---|---|---|---|
-| `POST` | `/` | Yes | Patient | Book an appointment (with double-booking protection) |
-| `GET` | `/me` | Yes | Patient | List the patient's own appointments |
-| `GET` | `/doctor/me` | Yes | Doctor | List the doctor's own appointments |
-| `GET` | `/patient/:patientId` | Yes | Doctor, Admin, Patient | List a specific patient's appointments |
-| `GET` | `/:id` | Yes | Any | Get a single appointment by ID |
-| `PUT` | `/:id/cancel` | Yes | Any | Cancel an appointment |
-
-### Doctors & Schedules (`/api/doctors`)
-
-| Method | Endpoint | Auth | Roles | Description |
-|---|---|---|---|---|
-| `GET` | `/` | Yes | Any | List all doctors (with specialization filter) |
-| `GET` | `/:id` | Yes | Any | Get a doctor's public profile |
-| `GET` | `/:id/slots` | Yes | Any | Get a doctor's available slots for a date |
-| `GET` | `/:id/availability` | Yes | Any | Get a doctor's availability calendar |
-| `GET` | `/me` | Yes | Doctor | Get own doctor profile |
-| `PUT` | `/me` | Yes | Doctor | Update own doctor profile |
-| `GET` | `/me/dashboard` | Yes | Doctor | Get dashboard metrics and today's schedule |
-| `GET` | `/me/schedule` | Yes | Doctor | Get weekly working-hours schedule |
-| `PUT` | `/me/schedule` | Yes | Doctor | Update weekly working-hours schedule |
-| `GET` | `/me/slots` | Yes | Doctor | List own slots |
-| `POST` | `/me/slots` | Yes | Doctor | Create individual slots |
-| `POST` | `/me/slots/from-working-hours` | Yes | Doctor | Auto-generate slots from working hours |
-| `POST` | `/me/slots/cancel-day` | Yes | Doctor | Cancel all slots for a specific date |
-| `PUT` | `/me/slots/:slotId` | Yes | Doctor | Update a slot |
-| `DELETE` | `/me/slots/:slotId` | Yes | Doctor | Delete a slot |
-| `GET` | `/me/patients` | Yes | Doctor | List the doctor's patients |
-| `GET` | `/me/patients/:patientId` | Yes | Doctor | Get a patient's details |
-
-### Consultations (`/api/consultations`)
-
-| Method | Endpoint | Auth | Roles | Description |
-|---|---|---|---|---|
-| `POST` | `/` | Yes | Doctor | Start a new consultation from an appointment |
-| `GET` | `/doctor/me` | Yes | Doctor | List the doctor's consultations |
-| `GET` | `/me` | Yes | Patient | List the patient's consultations |
-| `GET` | `/:id` | Yes | Doctor, Patient | Get a consultation by ID |
-| `PUT` | `/:id` | Yes | Doctor | Update consultation (diagnosis, notes, treatment) |
-| `PUT` | `/:id/complete` | Yes | Doctor | Complete and lock the consultation |
-
-### Prescriptions (`/api/prescriptions`)
-
-| Method | Endpoint | Auth | Roles | Description |
-|---|---|---|---|---|
-| `PUT` | `/consultation/:consultationId` | Yes | Doctor | Create or update a prescription for a consultation |
-| `GET` | `/consultation/:consultationId` | Yes | Doctor, Patient | Get the prescription for a consultation |
-| `GET` | `/doctor/me` | Yes | Doctor | List all prescriptions by the doctor |
-| `GET` | `/me` | Yes | Patient | List the patient's prescriptions |
-| `GET` | `/me/active` | Yes | Patient | List the patient's active (current) medications |
-
-### Admin (`/api/admin`)
-
-| Method | Endpoint | Auth | Roles | Description |
-|---|---|---|---|---|
-| `GET` | `/stats` | Yes | Admin | Platform statistics (counts, trends) |
-| `GET` | `/doctors` | Yes | Admin | List all doctors |
-| `POST` | `/doctors` | Yes | Admin | Register a new doctor account |
-| `PUT` | `/doctors/:id` | Yes | Admin | Update a doctor |
-| `DELETE` | `/doctors/:id` | Yes | Admin | Delete a doctor |
-| `GET` | `/patients` | Yes | Admin | List all patients |
-| `DELETE` | `/patients/:id` | Yes | Admin | (501 Not Implemented) Disabled by policy |
-| `GET` | `/appointments` | Yes | Admin | List all appointments |
-| `PUT` | `/appointments/:id/status` | Yes | Admin | Update an appointment's status |
-
-### Health Check
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/status` | — | Returns server status and timestamp |
-
----
-
-## Environment Setup
-
-### 1. Prerequisites
-
-- [Node.js](https://nodejs.org/) v20 or later
-- [MongoDB](https://www.mongodb.com/) (local instance or Atlas)
-
-### 2. Environment Configuration
-
-Copy the environment template and configure your values:
-
-```bash
-cp .env.example .env
-```
-
-Required variables (see `.env.example`):
-
-| Variable | Description | Default |
-|---|---|---|
-| `PORT` | Backend server port | `5000` |
-| `NODE_ENV` | Environment mode | `development` |
-| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/curelink` |
-| `JWT_SECRET` | Secret key for JWT signing | *(must be set)* |
-| `JWT_EXPIRE` | JWT expiration duration | `7d` |
-| `CLIENT_URL` | Frontend URL (for CORS) | `http://localhost:5173` |
-
-> **Important:** Never commit `.env` to version control. The `.gitignore` already excludes it.
-
-### 3. Install Dependencies
-
-From the project root:
-
-```bash
-npm run install-all
-```
-
-This installs both `client/` and `server/` dependencies.
-
-### 4. Create an Admin Account
-
-An admin account is required to manage the platform:
-
-```bash
-cd server
-npm run create:admin
-```
-
-Follow the interactive prompts to set admin credentials.
-
-### 5. Seed Sample Doctors (Optional)
-
-To populate the system with sample doctor profiles:
-
-```bash
-cd server
-npm run seed:doctors
-```
-
-### 6. Run the Application
-
-Open two terminals from the project root:
-
-**Terminal 1 — Backend Server:**
-```bash
-npm run server-dev
-```
-The server runs on [http://localhost:5000](http://localhost:5000).
-
-**Terminal 2 — Frontend Client:**
-```bash
-npm run client-dev
-```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
-## Role Credentials
-
-After setup, the following roles are available:
-
-| Role | How to Access |
-|---|---|
-| **Patient** | Register a new account via the Sign Up page |
-| **Doctor** | Created by an administrator through the Admin → Doctors panel |
-| **Admin** | Created via `npm run create:admin` CLI script |
-
----
-
-## Architecture
+## Project structure
 
 ```text
-React Frontend (Vite)
-      ↓
-React Router (role-based layouts)
-      ↓
-API Service Modules (centralized fetch wrappers)
-      ↓
-Express REST API
-      ↓
-Auth Middleware (JWT + role authorization)
-      ↓
-Controllers (HTTP layer)
-      ↓
-Application Services (business logic)
-      ↓
-Mongoose Models
-      ↓
-MongoDB
+CureLink/
+├── .env.example              server environment template
+├── package.json              convenience scripts
+├── client/
+│   ├── .env.example          VITE_API_URL
+│   └── src/
+│       ├── components/       admin, auth, common, doctor (+ consultation), layout, patient
+│       ├── context/          AuthContext, ToastContext
+│       ├── pages/            admin, auth, doctor, patient, public, shared
+│       ├── routes/           AppRoutes.jsx
+│       ├── services/         one module per API area, built on services/api.js
+│       ├── styles/           global.css
+│       └── utils/            date helpers
+└── server/
+    ├── config/               db connection, auth constants
+    ├── controllers/          request/response handling
+    ├── middleware/           authMiddleware (protect, authorize), errorMiddleware
+    ├── models/               User, Patient, Doctor, Appointment, Slot, Consultation, Prescription
+    ├── routes/               one router per resource
+    ├── scripts/              createAdmin, seedDoctors, migrateEmbeddedPrescriptions
+    ├── services/             business rules (booking, schedule, consultation, prescription)
+    ├── utils/                generateToken, httpError, timeUtils
+    └── validators/           request validation per resource
 ```
 
-### Three-Layer Separation
-
-1. **Presentation Layer** — React pages and components. No database or business logic.
-2. **Application / Business Logic Layer** — Express services with deterministic rules (booking conflicts, consultation state machines, prescription upsert logic).
-3. **Data Layer** — Mongoose models and database queries. Accessed only through the backend.
+Request flow: route, then `protect` / `authorize`, then validator, then controller, then service, then Mongoose model.
 
 ---
 
-## Development Workflow
+## Getting started
 
-CureLink is developed by a team of five. Each developer works on their own branch:
+### Prerequisites
+
+- A current LTS release of Node.js
+- A MongoDB database. For local work a standalone `mongod` is enough, but consultation completion is only atomic on a replica set or Atlas (see *Data integrity*).
+
+### Setup
+
+```bash
+# 1. install dependencies
+npm run install-all
+
+# 2. server environment
+cp .env.example .env          # then edit the values
+# 3. client environment (optional for local dev; defaults to http://localhost:5000/api)
+cp client/.env.example client/.env
+
+# 4. create the first administrator (interactive prompt)
+npm run create:admin --prefix server
+
+# 5. run both apps in two terminals
+npm run server-dev            # API on http://localhost:5000
+npm run client-dev            # UI on http://localhost:5173
+```
+
+### Environment variables
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `MONGO_URI` | server | MongoDB connection string (required) |
+| `JWT_SECRET` | server | Secret used to sign tokens (required, use a long random value) |
+| `CLIENT_URL` | server | Exact origin of the frontend, used for CORS (required) |
+| `JWT_EXPIRE` | server | Token lifetime, default `7d` |
+| `NODE_ENV` | server | `production` enables secure cookies and the helmet CSP |
+| `PORT` | server | Defaults to 5000 (set automatically on most hosts) |
+| `VITE_API_URL` | client, build time | API base URL, for example `http://localhost:5000/api`, or `/api` when the API serves the client |
+
+The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. Real credentials must never be committed; only the `.env.example` files are tracked.
+
+### Demo data
+
+- Doctors are created from **Admin, Doctors, Add Doctor**. This also creates the doctor's login account.
+- `npm run seed:doctors --prefix server` inserts sample doctor profiles for browsing. **It deletes every existing doctor document first**, and the seeded doctors have no login account. Do not run it on a database that holds real data.
+- Patients register themselves from the Sign Up page.
+
+---
+
+## Roles and access
+
+| Area | Patient | Doctor | Admin |
+|---|---|---|---|
+| Browse doctors and open slots | yes | yes | yes |
+| Book and cancel own appointments | yes | no | no |
+| Own profile and medical profile | yes | yes (doctor profile) | yes (name, email, phone) |
+| Schedule and slot management | no | yes | no |
+| Start and complete consultations | no | yes | no |
+| View own consultations and prescriptions | yes | no | no |
+| View patients the doctor has an appointment with | no | yes | no |
+| Doctor, patient and appointment administration | no | no | yes |
+
+Access is enforced twice: `ProtectedRoute` redirects on the client, and `protect` plus `authorize(...)` reject on the server (401 or 403). The client check is only for navigation; the server is the real gate.
+
+### Client routes
+
+| Role | Routes |
+|---|---|
+| Public | `/`, `/login`, `/signup` |
+| Patient | `/patient/dashboard`, `/patient/doctors`, `/patient/doctors/:doctorId`, `/patient/appointments`, `/patient/appointments/book`, `/patient/medical-history`, `/patient/profile` |
+| Doctor | `/doctor/dashboard`, `/doctor/schedule`, `/doctor/appointments`, `/doctor/consultations`, `/doctor/consultations/:consultationId`, `/doctor/patients`, `/doctor/patients/:patientId`, `/doctor/profile` |
+| Admin | `/admin/dashboard`, `/admin/doctors`, `/admin/patients`, `/admin/appointments`, `/admin/profile` |
+
+---
+
+## REST API
+
+All paths are prefixed with `/api`. Everything except register, login, logout and status needs a valid session cookie.
+
+### Auth
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| POST | `/auth/register` | public | Register a patient account |
+| POST | `/auth/login` | public | Log in and set the `jwt` cookie |
+| POST | `/auth/logout` | public | Clear the cookie |
+| GET | `/auth/me` | any role | Current user, with patient profile when applicable |
+| PUT | `/auth/me` | any role | Update name, email, phone and, for patients, the medical profile |
+
+### Doctors and schedules
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| GET | `/doctors` | any role | List doctors (search and specialization filter) |
+| GET | `/doctors/:id` | any role | Doctor profile |
+| GET | `/doctors/:id/slots?date=YYYY-MM-DD` | any role | Free slots for one date |
+| GET | `/doctors/:id/availability` | any role | Availability summary across dates |
+| GET, PUT | `/doctors/me` | doctor | Own profile |
+| GET | `/doctors/me/dashboard` | doctor | Dashboard data for a date |
+| GET, PUT | `/doctors/me/schedule` | doctor | Working days, hours, break, off dates |
+| GET, POST | `/doctors/me/slots` | doctor | List or create slots |
+| POST | `/doctors/me/slots/from-working-hours` | doctor | Generate slots from the weekly schedule |
+| POST | `/doctors/me/slots/cancel-day` | doctor | Cancel open slots for a day |
+| PUT, DELETE | `/doctors/me/slots/:slotId` | doctor | Update or remove a slot |
+| GET | `/doctors/me/patients` | doctor | Patients linked through appointments |
+| GET | `/doctors/me/patients/:patientId` | doctor | One patient (only if linked to this doctor) |
+
+### Appointments
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| POST | `/appointments` | patient | Book a slot (`doctorId`, `date`, `timeSlot`, `reason`; `phone` on the first booking if none is stored) |
+| GET | `/appointments/me` | patient | Own appointments |
+| GET | `/appointments/doctor/me` | doctor | The doctor's appointments |
+| GET | `/appointments/:id` | owner patient, owner doctor, admin | One appointment |
+| PUT | `/appointments/:id/cancel` | owner patient, owner doctor, admin | Cancel; refused once a consultation is in progress or completed |
+| GET | `/appointments/patient/:patientId` | owner patient, admin | Legacy listing, not used by the client |
+
+### Consultations and prescriptions
+
+| Method | Path | Access | Description |
+|---|---|---|---|
+| POST | `/consultations` | doctor | Start a consultation for an appointment |
+| GET | `/consultations/doctor/me` | doctor | The doctor's consultations |
+| GET | `/consultations/me` | patient | Own completed consultations (clinical notes are never returned) |
+| GET | `/consultations/:id` | doctor, patient | One consultation, ownership checked |
+| PUT | `/consultations/:id` | doctor | Save assessment, treatment plan and follow-up while in progress |
+| PUT | `/consultations/:id/complete` | doctor | Finalise the consultation |
+| PUT, GET | `/prescriptions/consultation/:consultationId` | doctor (write), doctor or patient (read) | Save or read the prescription |
+| GET | `/prescriptions/me` | patient | Own prescriptions |
+| GET | `/prescriptions/me/active` | patient | Medicines still within their course |
+| GET | `/prescriptions/doctor/me` | doctor | Prescriptions written by the doctor |
+
+### Admin
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/admin/stats` | Platform counts and recent appointments |
+| GET, POST | `/admin/doctors` | List doctors or create a doctor with a login account |
+| PUT, DELETE | `/admin/doctors/:id` | Update or delete a doctor |
+| GET | `/admin/patients` | List patient accounts (no medical data) |
+| DELETE | `/admin/patients/:id` | Deliberately disabled (501) so medical records are retained |
+| GET | `/admin/appointments` | List all appointments |
+| PUT | `/admin/appointments/:id/status` | Change an appointment's status |
+
+### Other
+
+`GET /api/status` returns a simple health response.
+
+Errors are returned as JSON with `success: false` and a `message`; validation errors use 400, missing session 401, wrong role or ownership 403, conflicts such as a taken slot 409.
+
+---
+
+## Data models
+
+| Model | Main fields | Notes |
+|---|---|---|
+| **User** | name, email (unique), phone, password (hashed), role | Login identity for all three roles |
+| **Patient** | fullName, email, phone, dateOfBirth, gender, bloodGroup, address, emergencyContact, allergies, chronicConditions, surgeries, currentMedications, `userId` | Created on first booking or first profile save |
+| **Doctor** | name, specialization, email, experience, qualifications, bio, languages, workingDays, workingHours, slotDurationMinutes, breakTime, offDates, `user` | Linked to a User with role `doctor` |
+| **Slot** | doctor, date, startTime, endTime, status (`open` / `cancelled`), isManual | Unique per doctor, date and start time |
+| **Appointment** | patient, doctor, date, timeSlot, status, reason, notes | Statuses: upcoming, scheduled, confirmed, completed, cancelled |
+| **Consultation** | appointment (unique), patient, doctor, status (`in_progress` / `completed`), chiefComplaint, diagnosis, clinicalNotes, treatmentPlan, followUpDate, followUpInstructions, prescription, completedAt | One per appointment |
+| **Prescription** | consultation (unique), patient, doctor, items[medicine, dosage, frequency, duration, durationDays, instructions] | One per consultation |
+
+Relationships: User 1-1 Patient or Doctor; Doctor 1-n Appointment n-1 Patient; Appointment 1-1 Consultation 1-1 Prescription.
+
+Indexes that matter:
+
+- `Appointment (doctor, date, timeSlot)` is **unique while the status is upcoming, scheduled or confirmed**. This is the database-level guard against double booking. Cancelling frees the slot again.
+- `Consultation.appointment` and `Prescription.consultation` are unique.
+
+---
+
+## Key behaviours
+
+### Booking and double-booking protection (FR-04, FR-05)
+
+Booking first recomputes the free slots for that doctor and date (working hours, breaks, off dates, stored slots, past times, existing active appointments) and rejects a label that is not free. If two patients still submit the same slot at the same moment, the partial unique index rejects the second insert and the API answers 409.
+
+### Consultation lifecycle (FR-07)
+
+1. The doctor starts a consultation from an appointment (one per appointment).
+2. While `in_progress`, the assessment and the prescription can be edited.
+3. **Complete** sets the consultation to `completed` and the appointment to `completed`. After that the assessment and prescription are rejected by the API and shown read-only in the UI.
+4. Patients see only completed consultations, without `clinicalNotes`.
+
+### Data integrity
+
+- Completion writes to two collections inside a MongoDB transaction. This is only atomic on a replica set or Atlas; on a standalone development `mongod` the code falls back to sequential writes.
+- Immutability of completed records is enforced in the service layer, not by database constraints.
+- Cancelling an appointment is refused once its consultation is `in_progress` or `completed`.
+
+### Reminders (FR-09)
+
+The patient dashboard shows a dismissible banner for an appointment coming up within 24 hours, and a "next appointment" card. There is no email delivery and no reminder for doctors yet.
+
+---
+
+## SRS traceability
+
+| Requirement | Where it lives |
+|---|---|
+| FR-01 registration, login, profiles | `authController`, `Profile.jsx`, `DoctorProfile.jsx` (doctor's own page) |
+| FR-02 role-based access | `authMiddleware`, `ProtectedRoute`, per-route `authorize` |
+| FR-03 doctor schedules | `scheduleService`, `patient/DoctorProfile.jsx`, `DoctorAvailability` |
+| FR-04, FR-05 booking and conflicts | `appointmentService`, `BookAppointment.jsx`, unique partial index |
+| FR-06 medical history | Patient medical profile (`PUT /auth/me`), `MedicalHistory.jsx` |
+| FR-07 diagnosis and prescription | `consultationService`, `prescriptionService`, `ConsultationWorkspace.jsx` |
+| FR-08 dashboards | Patient, doctor and admin dashboard pages |
+| FR-09 reminders | Patient dashboard banners |
+| FR-10 admin panel | `adminController`, `pages/admin` |
+| FR-11 responsive UI | `global.css` breakpoints (desktop and tablet) |
+
+---
+
+## Manual test checklist (acceptance criteria)
+
+| AC | Steps | Expected |
+|---|---|---|
+| AC-01 | Log in as a patient, open `/admin/dashboard` | Redirected to the patient dashboard; `GET /api/admin/stats` returns 403 |
+| AC-02 | Open a doctor with a published schedule | Available slots are listed for a future weekday |
+| AC-03 | Book a slot | Appears under the patient's Appointments and the doctor's Appointments |
+| AC-04 | Open the same slot as a second patient and confirm after the first booking | Booking refused (409), slot not double-allocated |
+| AC-05 | Doctor completes a consultation with a diagnosis and prescription | Patient sees both under Medical History; the prescription is read-only for the doctor |
+| AC-06 | Open Medical History as patient A, then as patient B | Each sees only their own records; another patient's consultation id returns 403 |
+
+---
+
+## Deployment (single origin)
+
+The Express server also serves the built client from `client/dist`, so the API and UI share one origin. This matters because the auth cookie uses `sameSite: strict` and would not be sent between two different hosting domains.
+
+- **Build command:** `npm install --prefix client && npm run build --prefix client && npm install --prefix server`
+- **Start command:** `npm start --prefix server`
+- **Environment:** `NODE_ENV=production`, `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL` (the deployed URL), `VITE_API_URL=/api` (needed at build time)
+- `trust proxy` is enabled so rate limiting sees the real client address behind the host's proxy.
+- Create the admin once with `npm run create:admin --prefix server` pointed at the production database.
+
+---
+
+## Known limitations
+
+These are tracked for the final sprint:
+
+- Admin appointment status changes do not apply the same lifecycle checks as patient or doctor cancellation.
+- Deleting a doctor does not yet block when appointments or clinical records reference that doctor.
+- Past appointments that were never started stay in an active status; there is no "missed" state.
+- Dates are stored as UTC midnight and "today" uses the server clock, so behaviour near midnight depends on the server timezone.
+- Reminders are on-screen only and patient-only.
+- There are no automated tests yet; verification is manual (see checklist above).
+- The legacy `GET /api/appointments/patient/:patientId` endpoint is not used by the client.
+
+---
+
+## Development workflow
+
+Work happens on per-developer branches that merge into `main`:
 
 ```text
 main
@@ -344,18 +321,10 @@ main
 └── adarsh
 ```
 
-### Commit Convention
-
-```text
-feat: add patient appointments page
-fix: correct appointment route
-style: update button styles
-refactor: extract appointment card component
-```
-
+Commit messages follow `feat:`, `fix:`, `style:` and `refactor:` prefixes.
 
 ---
 
 ## License
 
-This project is developed for educational and demonstration purposes as part of a team software engineering project.
+Academic project for HEA-WEB-2026-052. Not licensed for production use with real patient data.

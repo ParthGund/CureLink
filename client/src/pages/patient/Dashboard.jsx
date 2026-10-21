@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck, CheckCircle2, Activity, Bell, FolderOpen, FileText, X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentList from '../../components/patient/AppointmentList';
 import { getMyAppointments } from '../../services/appointmentService';
+import { getMyConsultations } from '../../services/consultationService';
+import { getMyPrescriptions } from '../../services/prescriptionService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 
 /** Statuses that count as "upcoming" / active. */
@@ -41,7 +44,11 @@ function isWithin24Hours(apt) {
 }
 
 export default function PatientDashboard() {
+  const { user } = useAuth();
+  const firstName = user?.name?.trim().split(' ')[0];
   const [appointments, setAppointments] = useState([]);
+  const [consultations, setConsultations] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -64,6 +71,14 @@ export default function PatientDashboard() {
       })
       .catch(() => setAppointments([]))
       .finally(() => setLoading(false));
+
+    // Records are secondary on this page, so a failure here just shows the empty state.
+    getMyConsultations()
+      .then((data) => setConsultations(data.consultations ?? []))
+      .catch(() => setConsultations([]));
+    getMyPrescriptions()
+      .then((data) => setPrescriptions(data.prescriptions ?? []))
+      .catch(() => setPrescriptions([]));
   }, []);
 
   // ── Derived values ────────────────────────────────────────────
@@ -111,7 +126,7 @@ export default function PatientDashboard() {
     {
       id:     'total',
       icon:   Activity,
-      label:  'Total Consultations',
+      label:  'Total Appointments',
       value:  loading ? '—' : countTotal,
       mod:    'slate',
     },
@@ -120,8 +135,8 @@ export default function PatientDashboard() {
   return (
     <div className="dashboard-page">
       <header className="page-heading">
-        <h1>Welcome back.</h1>
-        <p>Your healthcare information, appointments, and activity will appear here.</p>
+        <h1>{firstName ? `Welcome back, ${firstName}` : 'Welcome back'}</h1>
+        <p>Your upcoming visits, recent activity and medical records at a glance.</p>
       </header>
 
       {/* ── Imminent consultation reminder banner ─────────────── */}
@@ -131,7 +146,7 @@ export default function PatientDashboard() {
             <Bell size={20} />
           </div>
           <div className="consultation-reminder-banner__content">
-            <p className="consultation-reminder-banner__label">Consultation Today</p>
+            <p className="consultation-reminder-banner__label">Appointment coming up</p>
             <p className="consultation-reminder-banner__detail">
               <strong>{imminentAppointment.doctor?.name ?? 'Your doctor'}</strong>
               {imminentAppointment.doctor?.specialization
@@ -222,7 +237,7 @@ export default function PatientDashboard() {
             <div className="apt-reminder-banner__content">
               <p className="apt-reminder-banner__label">No upcoming appointments</p>
               <p className="apt-reminder-banner__detail">
-                Find a doctor and book a slot to get started.
+                You have nothing booked right now. Pick a doctor and choose a free slot.
               </p>
             </div>
             <Button to="/patient/doctors" className="apt-reminder-banner__cta">
@@ -247,9 +262,9 @@ export default function PatientDashboard() {
           <Card>
             <EmptyState
               icon={CalendarCheck}
-              title="No activity yet"
-              description="Your appointment history will appear here."
-              action={<Button to="/patient/appointments/book">Book an Appointment</Button>}
+              title="No appointments yet"
+              description="Once you book a visit, it will be listed here."
+              action={<Button to="/patient/doctors">Find a Doctor</Button>}
             />
           </Card>
         )}
@@ -263,18 +278,35 @@ export default function PatientDashboard() {
         </div>
         <div className="recent-grid">
           <Card>
-            <EmptyState
-              icon={FolderOpen}
-              title="No medical records yet"
-              description="Your consultation history will appear here."
-            />
+            {consultations.length > 0 ? (
+              <div className="dashboard-record-summary">
+                <h3>{consultations.length} consultation record{consultations.length === 1 ? '' : 's'}</h3>
+                <p>
+                  Latest: {consultations[0].doctor?.name ?? 'your doctor'}
+                  {consultations[0].diagnosis ? ` · ${consultations[0].diagnosis}` : ''}
+                </p>
+              </div>
+            ) : (
+              <EmptyState
+                icon={FolderOpen}
+                title="No consultation records yet"
+                description="A record is added here once a doctor completes your consultation."
+              />
+            )}
           </Card>
           <Card>
-            <EmptyState
-              icon={FileText}
-              title="No prescriptions yet"
-              description="Your active prescriptions will appear here."
-            />
+            {prescriptions.length > 0 ? (
+              <div className="dashboard-record-summary">
+                <h3>{prescriptions.length} prescription{prescriptions.length === 1 ? '' : 's'}</h3>
+                <p>Open Medical History to see the medicines and instructions.</p>
+              </div>
+            ) : (
+              <EmptyState
+                icon={FileText}
+                title="No prescriptions yet"
+                description="Prescriptions written by your doctor will show up here."
+              />
+            )}
           </Card>
         </div>
       </section>

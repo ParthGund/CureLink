@@ -104,6 +104,11 @@ export default function Profile({ role }) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleStartEdit(e) {
+    e.preventDefault();
+    setEditing(true);
+  }
+
   function handleCancel() {
     setFormData(buildFormData(user, fields));
     setEditing(false);
@@ -230,16 +235,16 @@ export default function Profile({ role }) {
             <div className="profile-form__actions">
               {editing ? (
                 <>
-                  <Button type="submit" disabled={saving}>
+                  <Button key="profile-save" type="submit" disabled={saving}>
                     {saving ? <Loader2 size={16} className="spin-icon" /> : <Save size={16} />}
                     {saving ? 'Saving…' : 'Save Changes'}
                   </Button>
-                  <Button type="button" variant="secondary" onClick={handleCancel} disabled={saving}>
+                  <Button key="profile-cancel" type="button" variant="secondary" onClick={handleCancel} disabled={saving}>
                     Cancel
                   </Button>
                 </>
               ) : (
-                <Button type="button" onClick={() => setEditing(true)}>
+                <Button key="profile-edit" type="button" onClick={handleStartEdit}>
                   Edit Profile
                 </Button>
               )}

@@ -31,6 +31,15 @@ const protect = async (req, res, next) => {
       });
     }
 
+    // Deactivated patient accounts cannot access any protected route.
+    // Admins and doctors are unaffected by this check.
+    if (user.role === 'patient' && user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.',
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {

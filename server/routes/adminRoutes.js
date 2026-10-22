@@ -8,7 +8,8 @@ const {
   updateDoctor,
   deleteDoctor,
   getAllPatients,
-  deletePatient,
+  deactivatePatient,
+  reactivatePatient,
   getAllAppointments,
   updateAppointmentStatus,
 } = require('../controllers/adminController');
@@ -27,7 +28,8 @@ router.delete('/doctors/:id', deleteDoctor);
 
 // Patient management
 router.get('/patients', getAllPatients);
-router.delete('/patients/:id', deletePatient);
+router.patch('/patients/:id/deactivate', deactivatePatient);
+router.patch('/patients/:id/reactivate', reactivatePatient);
 
 // Appointment management
 router.get('/appointments', getAllAppointments);

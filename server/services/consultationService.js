@@ -40,6 +40,12 @@ async function startConsultation(user, appointmentId) {
     throw httpError(400, 'Cannot start a consultation for a completed appointment.');
   }
 
+  // Guard: missed appointments cannot have consultations — no reopening workflow is defined.
+  // A doctor who needs to document a missed-appointment interaction should contact support.
+  if (appointment.status === 'missed') {
+    throw httpError(400, 'Cannot start a consultation for a missed appointment.');
+  }
+
   // Guard: deleted patient or doctor on the appointment
   if (!appointment.patient) {
     throw httpError(404, 'The patient linked to this appointment no longer exists.');
@@ -290,11 +296,6 @@ async function completeConsultation(consultationId, user) {
     } else {
       throw err;
     }
-  } finally {
-    session.endSession();
-  }
-
-  return consultation;
 }
 
 module.exports = {

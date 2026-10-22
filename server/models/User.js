@@ -28,6 +28,15 @@ const userSchema = new mongoose.Schema({
     enum: ['patient', 'doctor', 'admin'],
     default: 'patient',
   },
+  /**
+   * Soft-deactivation flag (patient accounts only, managed by admin).
+   * Defaults to true so all existing accounts remain active.
+   * Deactivated patients cannot log in or access protected routes.
+   */
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

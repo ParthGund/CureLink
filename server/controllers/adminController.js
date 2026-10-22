@@ -290,7 +290,7 @@ const deleteDoctor = async (req, res) => {
 const getAllPatients = async (req, res) => {
   try {
     const patients = await User.find({ role: 'patient' })
-      .select('_id name email createdAt')
+      .select('_id name email isActive createdAt')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, patients });
@@ -303,17 +303,106 @@ const getAllPatients = async (req, res) => {
 };
 
 /**
- * DELETE /api/admin/patients/:id
- * Remove a patient user record.
+ * PATCH /api/admin/patients/:id/deactivate
+ * Soft-deactivate a patient account.
+ * Sets isActive = false on the User document.
+ * Does NOT delete any medical records, appointments, or related data.
  */
-const deletePatient = async (req, res) => {
-  // Hard deletion is disabled to prevent accidental destructive cascading and
-  // leaving orphaned medical/appointment records.
-  // TODO: Implement a proper data-retention policy and soft-delete/deactivation.
-  return res.status(501).json({
-    success: false,
-    message: 'Hard deletion of patients is disabled to preserve medical history. Deactivation will be supported in a future update.',
-  });
+const deactivatePatient = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Patient not found.',
+      });
+    }
+
+    if (user.role !== 'patient') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only patient accounts can be deactivated through this endpoint.',
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(409).json({
+        success: false,
+        message: 'This account is already deactivated.',
+      });
+    }
+
+    user.isActive = false;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Patient account deactivated successfully.',
+      patient: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to deactivate patient account.',
+    });
+  }
+};
+
+/**
+ * PATCH /api/admin/patients/:id/reactivate
+ * Re-activate a previously deactivated patient account.
+ * Sets isActive = true — all existing medical records are untouched.
+ */
+const reactivatePatient = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Patient not found.',
+      });
+    }
+
+    if (user.role !== 'patient') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only patient accounts can be reactivated through this endpoint.',
+      });
+    }
+
+    if (user.isActive === true) {
+      return res.status(409).json({
+        success: false,
+        message: 'This account is already active.',
+      });
+    }
+
+    user.isActive = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Patient account reactivated successfully.',
+      patient: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reactivate patient account.',
+    });
+  }
 };
 
 // ── Appointments ───────────────────────────────────────────────
@@ -362,13 +451,33 @@ const updateAppointmentStatus = async (req, res) => {
       });
     }
 
-    // Guard: terminal states cannot revert to any active status
-    const TERMINAL = ['cancelled', 'completed', 'missed'];
-    const ACTIVE = ['scheduled', 'confirmed', 'upcoming'];
-    if (TERMINAL.includes(appointment.status) && ACTIVE.includes(status)) {
+    // ── Lifecycle transition table ─────────────────────────────
+    // Defines the complete set of valid status transitions.
+    // Any transition not listed here is rejected.
+    const ALLOWED_TRANSITIONS = {
+      scheduled: new Set(['upcoming', 'confirmed', 'completed', 'cancelled', 'missed']),
+      upcoming:  new Set(['confirmed', 'completed', 'cancelled', 'missed']),
+      confirmed: new Set(['completed', 'cancelled', 'missed']),
+      // Terminal states: no transitions permitted
+      completed: new Set(),
+      cancelled: new Set(),
+      missed:    new Set(),
+    };
+
+    const from = appointment.status;
+
+    if (from === status) {
+      return res.status(409).json({
+        success: false,
+        message: `Appointment is already ${status}.`,
+      });
+    }
+
+    const allowed = ALLOWED_TRANSITIONS[from];
+    if (!allowed || !allowed.has(status)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot revert a ${appointment.status} appointment back to an active status (${status}).`,
+        message: `Cannot transition appointment from '${from}' to '${status}'.`,
       });
     }
 
@@ -396,7 +505,8 @@ module.exports = {
   updateDoctor,
   deleteDoctor,
   getAllPatients,
-  deletePatient,
+  deactivatePatient,
+  reactivatePatient,
   getAllAppointments,
   updateAppointmentStatus,
 };

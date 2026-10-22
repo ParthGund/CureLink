@@ -668,6 +668,70 @@ select.modal-input {
   color: var(--navy);
 }
 
+/* ── Patient Account Status Badges ─────────────────────────── */
+.patient-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.patient-status-badge--active {
+  background: #e6f7f5;
+  color: var(--teal-dark);
+}
+.patient-status-badge--deactivated {
+  background: #fdf0f0;
+  color: #8b2d36;
+}
+
+/* Deactivate button (amber warning style) */
+.admin-table__deactivate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #f5d87a;
+  border-radius: 7px;
+  background: #fef9e7;
+  color: #7d5a00;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+.admin-table__deactivate-btn:hover:not(:disabled) {
+  background: #fdf0c0;
+}
+.admin-table__deactivate-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* Reactivate button (green success style) */
+.admin-table__reactivate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #aedfb4;
+  border-radius: 7px;
+  background: #edf8ec;
+  color: #1a6632;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+.admin-table__reactivate-btn:hover:not(:disabled) {
+  background: #d4f0d6;
+}
+.admin-table__reactivate-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 /* ── Admin Filter Row ───────────────────────────────────────── */
 .admin-filter-row {
   display: flex;

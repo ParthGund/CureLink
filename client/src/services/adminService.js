@@ -60,6 +60,25 @@ export async function getPatients() {
   return data.patients;
 }
 
+/**
+ * Deactivate a patient account (admin only).
+ * Sets isActive = false. Does not delete any records.
+ * @param {string} id - Patient User MongoDB _id.
+ * @returns {Promise<object>} Updated patient summary.
+ */
+export async function deactivatePatient(id) {
+  return api(`/admin/patients/${id}/deactivate`, { method: 'PATCH' });
+}
+
+/**
+ * Reactivate a previously deactivated patient account (admin only).
+ * Sets isActive = true and restores login eligibility.
+ * @param {string} id - Patient User MongoDB _id.
+ * @returns {Promise<object>} Updated patient summary.
+ */
+export async function reactivatePatient(id) {
+  return api(`/admin/patients/${id}/reactivate`, { method: 'PATCH' });
+}
 
 
 /**

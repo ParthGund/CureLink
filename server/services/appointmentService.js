@@ -217,6 +217,10 @@ async function cancelAppointment(appointmentId, user) {
     throw httpError(400, `Cannot cancel an appointment that is ${appointment.status}.`);
   }
 
+  if (appointment.status === 'missed') {
+    throw httpError(400, 'Cannot cancel an appointment that has already been marked as missed.');
+  }
+
   const activeConsultation = await Consultation.findOne({
     appointment: appointmentId,
     status: { $in: ['in_progress', 'completed'] },

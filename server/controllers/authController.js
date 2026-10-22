@@ -97,6 +97,15 @@ const loginPatient = async (req, res) => {
       });
     }
 
+    // Deactivated patient accounts cannot log in.
+    // Admins and doctors are exempt from this restriction.
+    if (user.role === 'patient' && user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact support.',
+      });
+    }
+
     generateToken(res, user._id, user.role);
 
     res.status(200).json({

@@ -26,6 +26,19 @@
 .appointment-card__reason { margin: 0; font-size: 13px; color: var(--slate); line-height: 1.4; }
 .appointment-card__cancel { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; border: 0; background: none; color: #8b2d36; font-size: 13px; font-weight: 600; cursor: pointer; }
 .appointment-card__cancel:hover { color: #6b1f27; }
+.appointment-card__actions { display: flex; flex-wrap: wrap; gap: 18px; }
+.appointment-card__reschedule { justify-self: start; display: inline-flex; align-items: center; gap: 5px; padding: 4px 0; border: 0; background: none; color: var(--teal-dark); font-size: 13px; font-weight: 600; cursor: pointer; }
+.appointment-card__reschedule:hover { color: #005e57; text-decoration: underline; }
+.reschedule-modal__label { display: block; margin: 18px 0 7px; color: var(--navy); font-size: 14px; font-weight: 700; }
+.reschedule-modal__input { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #aebdce; border-radius: 8px; color: var(--navy); background: #fff; }
+.reschedule-modal__input:focus-visible, .appointment-card__reschedule:focus-visible, .appointment-card__cancel:focus-visible { outline: 3px solid rgb(4 155 144 / 35%); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .appointment-card__actions { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .appointment-card__actions button { min-height: 40px; }
+  .reschedule-modal__input { font-size: 16px; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions > button { flex: 1 1 100%; }
+}
 .cancelled-section { margin-top: 32px; }.cancelled-section > h2 { margin: 0 0 16px 8px; }
 .profile-page-card { margin-top: 38px; max-width: 560px; }
 .profile-card { padding: 32px 28px; }

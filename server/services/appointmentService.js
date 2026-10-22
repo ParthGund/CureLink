@@ -5,7 +5,7 @@ const Doctor = require('../models/Doctor');
 const Consultation = require('../models/Consultation');
 const { httpError } = require('../utils/httpError');
 const scheduleService = require('./scheduleService');
-const { toIsoDate } = require('../utils/timeUtils');
+const { toIsoDate, parseIsoDate } = require('../utils/timeUtils');
 
 /**
  * Get the Patient document linked to an authenticated user.
@@ -237,6 +237,69 @@ async function cancelAppointment(appointmentId, user) {
 }
 
 /**
+ * Move an existing patient appointment to another available slot.
+ * The appointment document is retained and each move is appended atomically.
+ */
+async function rescheduleAppointment(appointmentId, user, { date, timeSlot }) {
+  if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+    throw httpError(404, 'Appointment not found.');
+  }
+  const patient = await getPatientForUser(user._id);
+  if (!patient) throw httpError(404, 'Patient profile not found.');
+
+  const appointment = await Appointment.findOne({ _id: appointmentId, patient: patient._id });
+  if (!appointment) throw httpError(404, 'Appointment not found.');
+  if (!['scheduled', 'upcoming', 'confirmed'].includes(appointment.status)) {
+    throw httpError(400, `Cannot reschedule an appointment that is ${appointment.status}.`);
+  }
+
+  if (await Consultation.exists({ appointment: appointment._id })) {
+    throw httpError(409, 'An appointment with a consultation cannot be rescheduled.');
+  }
+
+  const newDate = parseIsoDate(date);
+  if (!newDate) throw httpError(400, 'Choose a valid appointment date.');
+  if (newDate < new Date(new Date().setUTCHours(0, 0, 0, 0))) {
+    throw httpError(400, 'Cannot reschedule an appointment to a past date.');
+  }
+  if (appointment.date.getTime() === newDate.getTime() && appointment.timeSlot === timeSlot) {
+    throw httpError(409, 'Choose a different date or time to reschedule.');
+  }
+
+  const isoDate = toIsoDate(newDate);
+  const available = await scheduleService.getAvailableLabelsForDate(appointment.doctor, isoDate);
+  if (!available.includes(timeSlot)) {
+    throw httpError(409, 'That time is no longer available. Choose another slot.');
+  }
+
+  const updated = await Appointment.findOneAndUpdate(
+    {
+      _id: appointment._id,
+      patient: patient._id,
+      status: { $in: ['scheduled', 'upcoming', 'confirmed'] },
+      date: appointment.date,
+      timeSlot: appointment.timeSlot,
+    },
+    {
+      $set: { date: newDate, timeSlot },
+      $push: {
+        rescheduleHistory: {
+          previousDate: appointment.date,
+          previousTimeSlot: appointment.timeSlot,
+          newDate,
+          newTimeSlot: timeSlot,
+          changedAt: new Date(),
+        },
+      },
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!updated) throw httpError(409, 'This appointment changed while you were rescheduling. Refresh and try again.');
+  return updated.populate(['patient', 'doctor']);
+}
+
+/**
  * Verify that the authenticated user has access to an appointment.
  *
  * Allowed relationships:
@@ -322,5 +385,6 @@ module.exports = {
   getDoctorAppointments,
   getAppointmentById,
   cancelAppointment,
+  rescheduleAppointment,
   verifyAppointmentAccess,
 };

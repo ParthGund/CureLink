@@ -1,6 +1,12 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { validateRegistration, validateLogin } = require('../validators/authValidator');
+const { validatePatientProfileUpdate } = require('../validators/patientProfileValidator');
+
+const PATIENT_PROFILE_SELECT = [
+  'fullName', 'email', 'phone', 'dateOfBirth', 'gender', 'bloodGroup', 'address',
+  'emergencyContact', 'allergies', 'chronicConditions', 'surgeries', 'currentMedications',
+].join(' ');
 
 /**
  * @desc    Register a new patient account
@@ -163,7 +169,7 @@ const getMe = async (req, res) => {
     let patientData = null;
     if (user.role === 'patient') {
       const Patient = require('../models/Patient');
-      patientData = await Patient.findOne({ userId: user._id });
+      patientData = await Patient.findOne({ userId: user._id }).select(PATIENT_PROFILE_SELECT);
     }
 
     res.status(200).json({
@@ -193,23 +199,37 @@ const getMe = async (req, res) => {
  */
 const updateMe = async (req, res) => {
   try {
+    if (req.user.role === 'patient') {
+      const { valid, errors } = validatePatientProfileUpdate(req.body);
+      if (!valid) {
+        return res.status(400).json({
+          success: false,
+          message: errors[0],
+          errors,
+        });
+      }
+    }
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    // Update User basic info
-    if (req.body.name) user.name = req.body.name.trim();
-    if (req.body.email) user.email = req.body.email.trim().toLowerCase();
-    
-    // Set user.phone if a valid string is provided
-    if (req.body.phone && typeof req.body.phone === 'string' && req.body.phone.trim() !== '') {
-      user.phone = req.body.phone.trim();
+    // Only the authenticated user's basic account fields are mutable here.
+    let userChanged = false;
+    if (req.body.name !== undefined) {
+      user.name = req.body.name.trim();
+      userChanged = true;
     }
-    
-    // We do NOT update passwords or roles here.
-
-    await user.save();
+    if (req.body.email !== undefined) {
+      user.email = req.body.email.trim().toLowerCase();
+      userChanged = true;
+    }
+    if (req.body.phone !== undefined) {
+      user.phone = req.body.phone.trim();
+      userChanged = true;
+    }
+    if (userChanged) await user.save();
 
     let patientData = null;
     if (user.role === 'patient') {
@@ -228,22 +248,20 @@ const updateMe = async (req, res) => {
         patient.fullName = user.name;
         patient.email = user.email;
       }
-      
-      if (user.phone) {
-        patient.phone = user.phone;
-      }
+
+      if (req.body.phone !== undefined || user.phone) patient.phone = user.phone || '';
       if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
-      if (req.body.gender !== undefined) patient.gender = req.body.gender;
-      if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup;
-      if (req.body.address !== undefined) patient.address = req.body.address;
-      if (req.body.emergencyContact !== undefined) patient.emergencyContact = req.body.emergencyContact;
-      if (req.body.allergies !== undefined) patient.allergies = req.body.allergies;
-      if (req.body.chronicConditions !== undefined) patient.chronicConditions = req.body.chronicConditions;
-      if (req.body.surgeries !== undefined) patient.surgeries = req.body.surgeries;
-      if (req.body.currentMedications !== undefined) patient.currentMedications = req.body.currentMedications;
+      if (req.body.gender !== undefined) patient.gender = req.body.gender || undefined;
+      if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup || undefined;
+      for (const field of [
+        'address', 'emergencyContact', 'allergies', 'chronicConditions',
+        'surgeries', 'currentMedications',
+      ]) {
+        if (req.body[field] !== undefined) patient[field] = req.body[field];
+      }
 
       await patient.save();
-      patientData = patient;
+      patientData = await Patient.findById(patient._id).select(PATIENT_PROFILE_SELECT);
     }
 
     res.status(200).json({
@@ -260,10 +278,16 @@ const updateMe = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+    }
+    if (error.name === 'ValidationError') {
+      const firstError = Object.values(error.errors)[0]?.message || 'Profile information is invalid.';
+      return res.status(400).json({ success: false, message: firstError });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to update profile.',
-      error: error.message
     });
   }
 };

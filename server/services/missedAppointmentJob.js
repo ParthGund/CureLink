@@ -158,26 +158,36 @@ const DEFAULT_INTERVAL_MS = 15 * 60 * 1000;
  * @returns {{ stop: () => void }} Handle to clear the interval.
  */
 function startMissedAppointmentJob(intervalMs = DEFAULT_INTERVAL_MS) {
-  // Run immediately on startup, then repeat.
-  sweepMissedAppointments()
-    .then((n) => {
-      if (n > 0) console.log(`[missed-sweep] Marked ${n} appointment(s) as missed.`);
-    })
-    .catch((err) => console.error('[missed-sweep] Error on initial run:', err.message));
-
-  const handle = setInterval(() => {
-    sweepMissedAppointments()
-      .then((n) => {
+  let timer = null;
+  let stopped = false;
+  let activeRun = null;
+  const run = () => {
+    if (stopped || activeRun) return activeRun;
+    activeRun = (async () => {
+      try {
+        const n = await sweepMissedAppointments();
         if (n > 0) console.log(`[missed-sweep] Marked ${n} appointment(s) as missed.`);
-      })
-      .catch((err) => console.error('[missed-sweep] Error:', err.message));
-  }, intervalMs);
-
-  // Allow the Node process to exit even if the interval is still active.
-  if (handle.unref) handle.unref();
+      } catch (err) {
+        console.error('[missed-sweep] Error:', err.message);
+      } finally {
+        activeRun = null;
+        if (!stopped) {
+          timer = setTimeout(run, intervalMs);
+          if (timer.unref) timer.unref();
+        }
+      }
+    })();
+    return activeRun;
+  };
+  // Run immediately, then schedule the next sweep only after this one finishes.
+  run();
 
   return {
-    stop: () => clearInterval(handle),
+    stop: async () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      if (activeRun) await activeRun;
+    },
   };
 }
 

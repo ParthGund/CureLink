@@ -8,6 +8,7 @@ const {
   getDoctorAppointments,
   getAppointmentById,
   cancelAppointment,
+  rescheduleAppointment,
 } = require('../controllers/appointmentController');
 
 // All appointment routes require authentication
@@ -19,5 +20,6 @@ router.get('/doctor/me', authorize('doctor'), getDoctorAppointments);
 router.get('/patient/:patientId', getPatientAppointments);
 router.get('/:id', getAppointmentById);
 router.put('/:id/cancel', cancelAppointment);
+router.put('/:id/reschedule', authorize('patient'), rescheduleAppointment);
 
 module.exports = router;

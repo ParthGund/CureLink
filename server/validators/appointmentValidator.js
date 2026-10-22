@@ -3,6 +3,7 @@
  */
 
 const mongoose = require('mongoose');
+const { parseIsoDate } = require('../utils/timeUtils');
 
 /**
  * Validate appointment creation input.
@@ -57,7 +58,25 @@ function validateAppointmentId(id) {
   return { valid: errors.length === 0, errors };
 }
 
+function validateAppointmentReschedule(data) {
+  const errors = [];
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { valid: false, errors: ['Reschedule details must be an object.'] };
+  }
+  for (const key of Object.keys(data)) {
+    if (!['date', 'timeSlot'].includes(key)) {
+      errors.push(`Field "${key}" cannot be changed while rescheduling.`);
+    }
+  }
+  if (!parseIsoDate(data.date)) errors.push('Choose a valid appointment date.');
+  if (typeof data.timeSlot !== 'string' || !data.timeSlot.trim() || data.timeSlot.length > 40) {
+    errors.push('Choose a valid appointment time slot.');
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 module.exports = {
   validateAppointmentCreation,
   validateAppointmentId,
+  validateAppointmentReschedule,
 };

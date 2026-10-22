@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, X } from 'lucide-react';
+import { CalendarDays, Clock, X, CalendarClock } from 'lucide-react';
 
 /** Map from API status value to a human-readable label. */
 const STATUS_LABELS = {
@@ -21,8 +21,8 @@ const STATUS_LABELS = {
  *                                             cancellation. Parent is responsible
  *                                             for showing a confirmation modal.
  */
-export default function AppointmentCard({ appointment, onCancelRequest }) {
-  const { doctor, date, appointmentDate, timeSlot, status, reason, _id } = appointment;
+export default function AppointmentCard({ appointment, onCancelRequest, onRescheduleRequest }) {
+  const { doctor, date, appointmentDate, timeSlot, status, reason } = appointment;
 
   const rawDate = appointmentDate || date;
   const formattedDate = rawDate
@@ -39,6 +39,7 @@ export default function AppointmentCard({ appointment, onCancelRequest }) {
   const statusLabel   = STATUS_LABELS[status]  || (status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Scheduled');
 
   const canCancel = (status === 'scheduled' || status === 'confirmed' || status === 'upcoming') && onCancelRequest;
+  const canReschedule = (status === 'scheduled' || status === 'confirmed' || status === 'upcoming') && onRescheduleRequest;
 
   return (
     <div className="appointment-card">
@@ -65,15 +66,29 @@ export default function AppointmentCard({ appointment, onCancelRequest }) {
 
       {reason && <p className="appointment-card__reason">{reason}</p>}
 
-      {canCancel && (
-        <button
-          type="button"
-          className="appointment-card__cancel"
-          onClick={() => onCancelRequest(appointment)}
-        >
-          <X size={14} aria-hidden="true" />
-          Cancel appointment
-        </button>
+      {(canCancel || canReschedule) && (
+        <div className="appointment-card__actions">
+          {canReschedule && (
+            <button
+              type="button"
+              className="appointment-card__reschedule"
+              onClick={() => onRescheduleRequest(appointment)}
+            >
+              <CalendarClock size={14} aria-hidden="true" />
+              Reschedule
+            </button>
+          )}
+          {canCancel && (
+            <button
+              type="button"
+              className="appointment-card__cancel"
+              onClick={() => onCancelRequest(appointment)}
+            >
+              <X size={14} aria-hidden="true" />
+              Cancel appointment
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

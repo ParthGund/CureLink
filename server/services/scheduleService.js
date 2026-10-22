@@ -226,7 +226,13 @@ function buildDaySlots(doctor, isoDate) {
  * @param {object} input - { date, startTime, endTime, slotDurationMinutes }
  * @returns {Promise<object[]>} Created slots in own-slot format.
  */
-async function createSlots(doctorId, input) {
+async function createSlots(doctorId, input = {}) {
+  input = input || {};
+  const allowedFields = new Set(["date", "startTime", "endTime", "slotDurationMinutes"]);
+  if (Object.keys(input).some((key) => !allowedFields.has(key))) {
+    throw httpError(400, "Only date, startTime, endTime, and slotDurationMinutes can be provided.");
+  }
+  const doctor = await requireDoctor(doctorId);
   const { date, startTime, endTime, slotDurationMinutes } = input;
 
   // ── Validate date ──
@@ -236,6 +242,11 @@ async function createSlots(doctorId, input) {
 
   const today = todayIso();
   if (date < today) throw httpError(400, "Cannot create slots for a past date.");
+
+  // One-off slots may extend normal working hours, but respect explicit days off.
+  if (Array.isArray(doctor.offDates) && doctor.offDates.some((off) => off && toIsoDate(new Date(off)) === date)) {
+    throw httpError(409, "This date is marked as a day off and cannot receive slots.");
+  }
 
   // ── Validate times ──
   if (!startTime || !isValidTime(startTime)) {
@@ -285,6 +296,15 @@ async function createSlots(doctorId, input) {
     throw httpError(400, `Cannot create more than ${MAX_SLOTS_PER_REQUEST} slots in a single request.`);
   }
 
+  const breakTime = doctor.breakTime || {};
+  if (isValidTime(breakTime.start) && isValidTime(breakTime.end)) {
+    const breakStart = toMinutes(breakTime.start);
+    const breakEnd = toMinutes(breakTime.end);
+    if (newSlots.some((slot) => rangesOverlap(toMinutes(slot.startTime), toMinutes(slot.endTime), breakStart, breakEnd))) {
+      throw httpError(400, "Slots cannot overlap the doctor's break time.");
+    }
+  }
+
   // ── Overlap check against existing slots on the same date ──
   const { dayStart, dayEnd } = dayRange(parsedDate);
   const existing = await Slot.find({
@@ -318,7 +338,15 @@ async function createSlots(doctorId, input) {
     isManual: true,
   }));
 
-  const created = await Slot.insertMany(docs);
+  let created;
+  try {
+    created = await Slot.insertMany(docs);
+  } catch (error) {
+    if (error.code === 11000) {
+      throw httpError(409, "One or more slots were created concurrently. Refresh the schedule and try again.");
+    }
+    throw error;
+  }
 
   // All newly created slots are unbooked
   return created.map((s) => formatOwnSlot(s, false));
@@ -374,7 +402,15 @@ async function listOwnSlots(doctorId, { from, to } = {}) {
  * @param {object} changes - Any subset of { date, startTime, endTime }.
  * @returns {Promise<object>} Updated slot in own-slot format.
  */
-async function updateSlot(doctorId, slotId, changes) {
+async function updateSlot(doctorId, slotId, changes = {}) {
+  changes = changes || {};
+  const allowedFields = new Set(["date", "startTime", "endTime", "status"]);
+  if (Object.keys(changes).some((key) => !allowedFields.has(key))) {
+    throw httpError(400, "Unsupported slot update field.");
+  }
+  if (changes.status !== undefined && !["open", "cancelled"].includes(changes.status)) {
+    throw httpError(400, "Slot status must be open or cancelled.");
+  }
   if (!mongoose.Types.ObjectId.isValid(slotId)) {
     throw httpError(404, "Time slot not found.");
   }
@@ -484,7 +520,12 @@ async function updateSlot(doctorId, slotId, changes) {
   slot.date = newDate;
   slot.startTime = newStartTime;
   slot.endTime = newEndTime;
-  await slot.save();
+  try {
+    await slot.save();
+  } catch (error) {
+    if (error.code === 11000) throw httpError(409, "Another slot already uses this date and start time.");
+    throw error;
+  }
 
   // Determine booking status for the updated slot
   const updatedLabel = slotLabel(slot);
@@ -856,11 +897,12 @@ async function getSchedule(doctorId) {
 /**
  * Update schedule settings and rebuild upcoming slots.
  */
-async function updateSchedule(doctorId, input) {
+async function updateSchedule(doctorId, input = {}) {
+  input = input || {};
   const doctor = await requireDoctor(doctorId);
   const { workingDays, workingHours, slotDurationMinutes, breakTime } = input;
 
-  if (!Array.isArray(workingDays) || workingDays.length === 0 || new Set(workingDays).size !== workingDays.length || workingDays.some(d => d < 0 || d > 6)) {
+  if (!Array.isArray(workingDays) || workingDays.length === 0 || new Set(workingDays).size !== workingDays.length || workingDays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) {
     throw httpError(400, "Select at least one working day.");
   }
 
@@ -887,13 +929,45 @@ async function updateSchedule(doctorId, input) {
     validBreak = { start: breakTime.start, end: breakTime.end };
   }
 
+  // Reject a schedule edit that would strand a booked appointment. A booked
+  // manually-created slot remains valid; generated availability must still
+  // include the appointment's existing display label.
+  const candidateSchedule = {
+    ...doctor.toObject(),
+    workingDays,
+    workingHours: { start: workingHours.start, end: workingHours.end },
+    slotDurationMinutes,
+    breakTime: validBreak,
+  };
+  const todayDate = parseIsoDate(todayIso());
+  const bookedAppointments = await Appointment.find({
+    doctor: doctor._id,
+    status: { $in: ['scheduled', 'confirmed', 'upcoming'] },
+    date: { $gte: todayDate },
+  }).select('date timeSlot');
+  const existingManualSlots = await Slot.find({
+    doctor: doctor._id,
+    date: { $gte: todayDate },
+    isManual: true,
+  }).select('date startTime');
+  const manualSlotKeys = new Set(existingManualSlots.map((slot) =>
+    `${toIsoDate(slot.date)}|${slotLabel(slot)}`
+  ));
+  for (const appointment of bookedAppointments) {
+    const dateIso = toIsoDate(appointment.date);
+    const generatedLabels = buildDaySlots(candidateSchedule, dateIso).map((slot) => toDisplayTime(toMinutes(slot.startTime)));
+    if (generatedLabels.includes(appointment.timeSlot)) continue;
+    if (!manualSlotKeys.has(`${dateIso}|${appointment.timeSlot}`)) {
+      throw httpError(409, `Schedule change conflicts with a booked appointment on ${dateIso}.`);
+    }
+  }
+
   doctor.workingDays = workingDays;
   doctor.workingHours = { start: workingHours.start, end: workingHours.end };
   doctor.slotDurationMinutes = slotDurationMinutes;
   doctor.breakTime = validBreak;
   await doctor.save();
 
-  const todayDate = parseIsoDate(todayIso());
   const futureSlots = await Slot.find({
     doctor: doctor._id,
     date: { $gte: todayDate },

@@ -1,10 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { CalendarClock, X } from 'lucide-react';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import AppointmentList from '../../components/patient/AppointmentList';
-import { getMyAppointments, cancelAppointment } from '../../services/appointmentService';
+import {
+  getMyAppointments,
+  cancelAppointment,
+  getAvailableSlots,
+  rescheduleAppointment,
+} from '../../services/appointmentService';
 import { useToast } from '../../context/ToastContext';
 
 /** Statuses that count as "upcoming" (active, not yet completed). */
@@ -101,6 +106,15 @@ export default function PatientAppointments() {
   // Cancel modal state
   const [cancelTarget,  setCancelTarget]  = useState(null);  // full appointment object
   const [confirming,    setConfirming]    = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTimeSlot, setNewTimeSlot] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const slotRequestId = useRef(0);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   // ── Fetch ─────────────────────────────────────────────────────
   const fetchAppointments = useCallback(() => {
@@ -126,6 +140,36 @@ export default function PatientAppointments() {
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  useEffect(() => {
+    if (!rescheduleTarget || !newDate || !rescheduleTarget.doctor?._id) {
+      setAvailableSlots([]);
+      setNewTimeSlot('');
+      setSlotsLoading(false);
+      return undefined;
+    }
+
+    const requestId = ++slotRequestId.current;
+    setSlotsLoading(true);
+    setAvailableSlots([]);
+    setNewTimeSlot('');
+    getAvailableSlots(rescheduleTarget.doctor._id, newDate)
+      .then((slots) => {
+        if (slotRequestId.current === requestId) setAvailableSlots(slots || []);
+      })
+      .catch((err) => {
+        if (slotRequestId.current === requestId) {
+          toastRef.current.error(err.message || 'Could not load available times.');
+        }
+      })
+      .finally(() => {
+        if (slotRequestId.current === requestId) setSlotsLoading(false);
+      });
+
+    return () => {
+      if (slotRequestId.current === requestId) slotRequestId.current++;
+    };
+  }, [rescheduleTarget, newDate]);
 
   // ── Filtering ─────────────────────────────────────────────────
   const filteredAppointments = (() => {
@@ -166,7 +210,7 @@ export default function PatientAppointments() {
     setConfirming(true);
     try {
       await cancelAppointment(cancelTarget._id);
-      toast.error('Appointment cancelled.');
+      toast.success('Appointment cancelled.');
       setCancelTarget(null);
       fetchAppointments();
     } catch (err) {
@@ -174,6 +218,27 @@ export default function PatientAppointments() {
       setCancelTarget(null);
     } finally {
       setConfirming(false);
+    }
+  }
+
+  function handleRescheduleRequest(appointment) {
+    setRescheduleTarget(appointment);
+    setNewDate('');
+    setNewTimeSlot('');
+  }
+
+  async function handleRescheduleConfirmed() {
+    if (!rescheduleTarget || !newDate || !newTimeSlot) return;
+    setRescheduling(true);
+    try {
+      await rescheduleAppointment(rescheduleTarget._id, { date: newDate, timeSlot: newTimeSlot });
+      toast.success('Appointment rescheduled.');
+      setRescheduleTarget(null);
+      fetchAppointments();
+    } catch (err) {
+      toast.error(err.message || 'Unable to reschedule appointment. Please try again.');
+    } finally {
+      setRescheduling(false);
     }
   }
 
@@ -215,6 +280,7 @@ export default function PatientAppointments() {
         <AppointmentList
           appointments={filteredAppointments}
           onCancelRequest={handleCancelRequest}
+          onRescheduleRequest={handleRescheduleRequest}
         />
       ) : (
         <Card className="apt-empty-card">
@@ -232,6 +298,42 @@ export default function PatientAppointments() {
       )}
 
       {/* ── Cancel confirmation modal ────────────────────────── */}
+      {rescheduleTarget && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reschedule-title" onClick={() => !rescheduling && setRescheduleTarget(null)}>
+          <div className="modal-panel modal-panel--narrow cancel-modal-body" onClick={(e) => e.stopPropagation()}>
+            <h2 id="reschedule-title" className="cancel-modal-title">Reschedule appointment</h2>
+            <p className="cancel-modal-desc">Choose a new available date and time with {rescheduleTarget.doctor?.name || 'your doctor'}.</p>
+            <label className="reschedule-modal__label" htmlFor="reschedule-date">New date</label>
+            <input
+              id="reschedule-date"
+              className="reschedule-modal__input"
+              type="date"
+              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              disabled={rescheduling}
+            />
+            <label className="reschedule-modal__label" htmlFor="reschedule-time">Available time</label>
+            <select
+              id="reschedule-time"
+              className="reschedule-modal__input"
+              value={newTimeSlot}
+              onChange={(e) => setNewTimeSlot(e.target.value)}
+              disabled={!newDate || slotsLoading || availableSlots.length === 0 || rescheduling}
+            >
+              <option value="">{slotsLoading ? 'Loading times…' : availableSlots.length ? 'Select a time' : 'No times available'}</option>
+              {availableSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+            </select>
+            <div className="modal-actions">
+              <button type="button" className="button button--secondary" onClick={() => setRescheduleTarget(null)} disabled={rescheduling}>Keep current time</button>
+              <button type="button" className="button" onClick={handleRescheduleConfirmed} disabled={rescheduling || slotsLoading || !newDate || !newTimeSlot}>
+                {rescheduling ? 'Rescheduling…' : 'Confirm reschedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CancelConfirmModal
         appointment={cancelTarget}
         onConfirm={handleCancelConfirmed}

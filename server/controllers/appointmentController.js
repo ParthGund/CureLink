@@ -1,6 +1,10 @@
 const appointmentService = require('../services/appointmentService');
 const { sendError } = require('../utils/httpError');
-const { validateAppointmentCreation, validateAppointmentId } = require('../validators/appointmentValidator');
+const {
+  validateAppointmentCreation,
+  validateAppointmentId,
+  validateAppointmentReschedule,
+} = require('../validators/appointmentValidator');
 
 /**
  * POST /api/appointments
@@ -144,6 +148,28 @@ const cancelAppointment = async (req, res) => {
   }
 };
 
+const rescheduleAppointment = async (req, res) => {
+  try {
+    const { valid: idValid, errors: idErrors } = validateAppointmentId(req.params.id);
+    if (!idValid) return res.status(400).json({ success: false, message: idErrors[0] });
+
+    const { valid, errors } = validateAppointmentReschedule(req.body);
+    if (!valid) return res.status(400).json({ success: false, message: errors[0], errors });
+
+    const appointment = await appointmentService.rescheduleAppointment(
+      req.params.id,
+      req.user,
+      req.body
+    );
+    return res.status(200).json({ success: true, appointment });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'That time was booked by another patient. Choose another slot.' });
+    }
+    return sendError(res, error, 'Failed to reschedule appointment.');
+  }
+};
+
 /**
  * GET /api/appointments/doctor/me
  * Get appointments for the currently authenticated doctor.
@@ -165,4 +191,5 @@ module.exports = {
   getDoctorAppointments,
   getAppointmentById,
   cancelAppointment,
+  rescheduleAppointment,
 };

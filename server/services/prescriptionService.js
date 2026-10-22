@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Prescription = require('../models/Prescription');
 const Consultation = require('../models/Consultation');
 const doctorService = require('./doctorService');
@@ -38,7 +39,7 @@ function sanitiseItem(raw) {
  */
 const POPULATE_PATIENT = { path: 'patient', select: 'fullName' };
 const POPULATE_DOCTOR = { path: 'doctor', select: 'name specialization' };
-const POPULATE_CONSULTATION = { path: 'consultation', select: 'status completedAt' };
+const POPULATE_CONSULTATION = { path: 'consultation', select: 'status completedAt patient doctor' };
 
 /**
  * Create or replace prescription items for a consultation.
@@ -53,6 +54,9 @@ const POPULATE_CONSULTATION = { path: 'consultation', select: 'status completedA
  */
 async function upsertPrescription(user, consultationId, items) {
   const doctor = await doctorService.getDoctorForUser(user._id);
+  if (!doctor) {
+    throw httpError(404, 'Your doctor profile has not been set up yet. Please contact an administrator.');
+  }
 
   const consultation = await Consultation.findById(consultationId);
   if (!consultation) {
@@ -71,24 +75,49 @@ async function upsertPrescription(user, consultationId, items) {
     throw httpError(400, 'Prescriptions can only be managed for in-progress consultations.');
   }
 
-  // Empty items array → delete the prescription
-  if (items.length === 0) {
-    await Prescription.deleteOne({ consultation: consultationId });
-    return { prescription: null };
+  const session = await mongoose.startSession();
+  let prescription;
+  try {
+    session.startTransaction();
+
+    // Write the consultation in the same transaction as the prescription.
+    // This creates a write conflict with concurrent finalization, preventing a
+    // prescription from being added or changed after the consultation closes.
+    const editableConsultation = await Consultation.findOneAndUpdate(
+      { _id: consultationId, doctor: doctor._id, status: 'in_progress' },
+      { $set: { updatedAt: new Date() } },
+      { new: true, session }
+    );
+    if (!editableConsultation) {
+      throw httpError(400, 'This consultation is no longer available for prescription changes.');
+    }
+
+    if (items.length === 0) {
+      await Prescription.deleteOne({ consultation: consultationId }, { session });
+      await session.commitTransaction();
+      return { prescription: null };
+    }
+
+    const sanitisedItems = items.map(sanitiseItem);
+    prescription = await Prescription.findOneAndUpdate(
+      { consultation: consultationId },
+      {
+        consultation: consultationId,
+        patient: editableConsultation.patient,
+        doctor: doctor._id,
+        items: sanitisedItems,
+      },
+      { upsert: true, new: true, runValidators: true, session }
+    );
+    await session.commitTransaction();
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction().catch(() => {});
+    }
+    throw error;
+  } finally {
+    await session.endSession();
   }
-
-  const sanitisedItems = items.map(sanitiseItem);
-
-  const prescription = await Prescription.findOneAndUpdate(
-    { consultation: consultationId },
-    {
-      consultation: consultationId,
-      patient: consultation.patient,
-      doctor: doctor._id,
-      items: sanitisedItems,
-    },
-    { upsert: true, new: true, runValidators: true }
-  );
 
   const populated = await Prescription.findById(prescription._id)
     .populate(POPULATE_PATIENT)
@@ -116,7 +145,7 @@ async function getPrescriptionByConsultation(user, consultationId) {
 
   if (user.role === 'doctor') {
     const doctor = await doctorService.getDoctorForUser(user._id);
-    if (!consultation.doctor.equals(doctor._id)) {
+    if (!doctor || !consultation.doctor.equals(doctor._id)) {
       throw httpError(403, 'You do not have access to this prescription.');
     }
   } else if (user.role === 'patient') {
@@ -131,7 +160,11 @@ async function getPrescriptionByConsultation(user, consultationId) {
     throw httpError(403, 'You do not have access to this prescription.');
   }
 
-  const prescription = await Prescription.findOne({ consultation: consultationId })
+  const prescription = await Prescription.findOne({
+    consultation: consultationId,
+    patient: consultation.patient,
+    doctor: consultation.doctor,
+  })
     .populate(POPULATE_PATIENT)
     .populate(POPULATE_DOCTOR)
     .populate(POPULATE_CONSULTATION);
@@ -152,6 +185,9 @@ async function getPrescriptionByConsultation(user, consultationId) {
  */
 async function getDoctorPrescriptions(user) {
   const doctor = await doctorService.getDoctorForUser(user._id);
+  if (!doctor) {
+    throw httpError(404, 'Your doctor profile has not been set up yet. Please contact an administrator.');
+  }
 
   return Prescription.find({ doctor: doctor._id })
     .populate(POPULATE_PATIENT)
@@ -181,8 +217,12 @@ async function getPatientPrescriptions(user) {
     .sort({ createdAt: -1 });
 
   // Only include prescriptions whose consultation is completed
-  const completed = prescriptions.filter(
-    (rx) => rx.consultation && rx.consultation.status === 'completed'
+  const completed = prescriptions.filter((rx) =>
+    rx.consultation &&
+    rx.consultation.status === 'completed' &&
+    rx.consultation.patient && rx.consultation.patient.equals(patient._id) &&
+    rx.consultation.doctor && rx.doctor &&
+    rx.consultation.doctor.equals(rx.doctor._id || rx.doctor)
   );
 
   return completed.map((rx) => shapePrescription(rx, 'patient'));
@@ -212,7 +252,12 @@ async function getPatientActiveMedicines(user) {
   const activeMedicines = [];
 
   for (const rx of prescriptions) {
-    if (!rx.consultation || rx.consultation.status !== 'completed') {
+    if (
+      !rx.consultation || rx.consultation.status !== 'completed' ||
+      !rx.consultation.patient || !rx.consultation.patient.equals(patient._id) ||
+      !rx.consultation.doctor || !rx.doctor ||
+      !rx.consultation.doctor.equals(rx.doctor._id || rx.doctor)
+    ) {
       continue;
     }
 

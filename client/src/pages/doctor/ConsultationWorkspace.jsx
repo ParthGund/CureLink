@@ -333,28 +333,6 @@ export default function ConsultationWorkspace() {
     setSaving(false);
   }
 
-  // ── Save prescription only (for completed consultations) ───
-  async function handleSavePrescription() {
-    if (!validateItems()) return;
-    setSaving(true);
-    try {
-      const serverItems = localItemsToServer(items);
-      const res = await saveConsultationPrescription(consultationId, serverItems);
-      setSavedPrescription(res.prescription);
-      if (res.prescription?.items) {
-        setSavedServerItems(res.prescription.items);
-        setItems(serverItemsToLocal(res.prescription.items));
-      } else {
-        setSavedServerItems([]);
-        setItems([]);
-      }
-      toast.success('Prescription saved.');
-    } catch (err) {
-      toast.error(err.message || 'Failed to save prescription.');
-    }
-    setSaving(false);
-  }
-
   // ── Complete consultation ──────────────────────────────────
   async function handleComplete() {
     setCompleting(true);

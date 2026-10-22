@@ -49,6 +49,23 @@ function validateConsultationId(id) {
  */
 function validateConsultationUpdate(data) {
   const errors = [];
+  const editableFields = [
+    'chiefComplaint', 'diagnosis', 'clinicalNotes', 'treatmentPlan',
+    'followUpDate', 'followUpInstructions',
+  ];
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { valid: false, errors: ['Consultation update must be an object.'] };
+  }
+
+  for (const key of Object.keys(data)) {
+    if (!editableFields.includes(key)) {
+      errors.push(`Field "${key}" cannot be updated.`);
+    }
+  }
+  if (!Object.keys(data).some((key) => editableFields.includes(key))) {
+    errors.push('At least one editable consultation field is required.');
+  }
 
   if (data.chiefComplaint !== undefined) {
     if (typeof data.chiefComplaint !== 'string') {
@@ -83,7 +100,10 @@ function validateConsultationUpdate(data) {
   }
 
   if (data.followUpDate !== undefined) {
-    if (typeof data.followUpDate !== 'string' || isNaN(Date.parse(data.followUpDate))) {
+    if (
+      typeof data.followUpDate !== 'string' ||
+      (data.followUpDate !== '' && isNaN(Date.parse(data.followUpDate)))
+    ) {
       errors.push('Follow-up date must be a valid date.');
     }
   }

@@ -59,7 +59,7 @@ Request flow: route, then `protect` / `authorize`, then validator, then controll
 ### Prerequisites
 
 - A current LTS release of Node.js
-- A MongoDB database. For local work a standalone `mongod` is enough, but consultation completion is only atomic on a replica set or Atlas (see *Data integrity*).
+- A MongoDB database. Use a replica set (including a single-node local replica set) for transaction-backed consultation completion and prescription finalization.
 
 ### Setup
 
@@ -93,7 +93,7 @@ npm run client-dev            # UI on http://localhost:5173
 | `CLINIC_TZ_OFFSET` | server | Optional: timezone offset for local clinic calculations (e.g. `+05:30`, `330`, or `5.5`) |
 | `VITE_API_URL` | client, build time | API base URL, for example `http://localhost:5000/api`, or `/api` when the API serves the client |
 
-The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. Real credentials must never be committed; only the `.env.example` files are tracked.
+The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. In production, `JWT_SECRET` must be at least 32 characters and `CLIENT_URL` must contain valid HTTPS origins (comma-separated origins are supported). Real credentials must never be committed; `.env` is ignored by Git and `.env.example` contains placeholders only.
 
 ### Demo data
 
@@ -170,6 +170,7 @@ All paths are prefixed with `/api`. Everything except register, login, logout an
 | GET | `/appointments/doctor/me` | doctor | The doctor's appointments |
 | GET | `/appointments/:id` | owner patient, owner doctor, admin | One appointment |
 | PUT | `/appointments/:id/cancel` | owner patient, owner doctor, admin | Cancel; refused once a consultation is in progress or completed |
+| PUT | `/appointments/:id/reschedule` | patient | Move an eligible owned appointment to an available slot; retains the appointment and appends reschedule history |
 | GET | `/appointments/patient/:patientId` | owner patient, admin | Legacy listing, not used by the client |
 
 ### Consultations and prescriptions
@@ -195,9 +196,10 @@ All paths are prefixed with `/api`. Everything except register, login, logout an
 | GET, POST | `/admin/doctors` | List doctors or create a doctor with a login account |
 | PUT, DELETE | `/admin/doctors/:id` | Update or delete a doctor |
 | GET | `/admin/patients` | List patient accounts (no medical data) |
-| DELETE | `/admin/patients/:id` | Deliberately disabled (501) so medical records are retained |
+| PATCH | `/admin/patients/:id/deactivate` | Deactivate a patient login without deleting medical history |
+| PATCH | `/admin/patients/:id/reactivate` | Reactivate a previously deactivated patient login |
 | GET | `/admin/appointments` | List all appointments |
-| PUT | `/admin/appointments/:id/status` | Change an appointment's status |
+| PUT | `/admin/appointments/:id/status` | Apply an allowed lifecycle transition; consultation completion is not available here |
 
 ### Other
 
@@ -215,7 +217,7 @@ Errors are returned as JSON with `success: false` and a `message`; validation er
 | **Patient** | fullName, email, phone, dateOfBirth, gender, bloodGroup, address, emergencyContact, allergies, chronicConditions, surgeries, currentMedications, `userId` | Created on first booking or first profile save |
 | **Doctor** | name, specialization, email, experience, qualifications, bio, languages, workingDays, workingHours, slotDurationMinutes, breakTime, offDates, `user` | Linked to a User with role `doctor` |
 | **Slot** | doctor, date, startTime, endTime, status (`open` / `cancelled`), isManual | Unique per doctor, date and start time |
-| **Appointment** | patient, doctor, date, timeSlot, status, reason, notes | Statuses: upcoming, scheduled, confirmed, completed, cancelled, missed |
+| **Appointment** | patient, doctor, date, timeSlot, status, reason, notes, rescheduleHistory | Statuses: upcoming, scheduled, confirmed, completed, cancelled, missed |
 | **Consultation** | appointment (unique), patient, doctor, status (`in_progress` / `completed`), chiefComplaint, diagnosis, clinicalNotes, treatmentPlan, followUpDate, followUpInstructions, prescription, completedAt | One per appointment |
 | **Prescription** | consultation (unique), patient, doctor, items[medicine, dosage, frequency, duration, durationDays, instructions] | One per consultation |
 
@@ -234,6 +236,18 @@ Indexes that matter:
 
 Booking first recomputes the free slots for that doctor and date (working hours, breaks, off dates, stored slots, past times, existing active appointments) and rejects a label that is not free. If two patients still submit the same slot at the same moment, the partial unique index rejects the second insert and the API answers 409.
 
+### Appointment lifecycle and rescheduling
+
+Patients may reschedule their own `scheduled`, `upcoming`, or `confirmed` appointment when no consultation exists. The destination must be an available slot for the same doctor. The same appointment record is updated and a history entry records the old/new date and time. A unique active-appointment index arbitrates simultaneous bookings. Cancelled, completed, missed, or consulted appointments cannot be rescheduled.
+
+The admin status endpoint permits only defined forward transitions and cannot set `completed`; that status is written by consultation completion with its diagnosis and consultation data. An admin cannot cancel an appointment with a consultation. Terminal statuses cannot be reopened through this endpoint.
+
+Schedule edits preserve booked slots. A weekly schedule change is rejected if it would strand an active booking unless a matching manually created slot still supports it. One-off slot creation respects explicit doctor days off and configured breaks. Slot endpoints are restricted to the authenticated doctor's own schedule.
+
+### Patient account and medical profile
+
+Administrators can deactivate and reactivate patient accounts without deleting clinical records. Deactivated patients cannot access protected routes. Patients manage validated medical-profile fields through their own profile; doctors see records only through an existing doctor-patient appointment relationship.
+
 ### Consultation lifecycle (FR-07)
 
 1. The doctor starts a consultation from an appointment (one per appointment).
@@ -243,7 +257,7 @@ Booking first recomputes the free slots for that doctor and date (working hours,
 
 ### Data integrity
 
-- Completion writes to two collections inside a MongoDB transaction. This is only atomic on a replica set or Atlas; on a standalone development `mongod` the code falls back to sequential writes.
+- Completion writes consultation and appointment updates inside a MongoDB transaction. The code retains a sequential fallback for standalone MongoDB development, but that fallback is not atomic. Deployments that require reliable finalization must use a replica set or a managed MongoDB service with transaction support. Do not treat fallback operation as transaction-equivalent.
 - Immutability of completed records is enforced in the service layer, not by database constraints.
 - Cancelling an appointment is refused once its consultation is `in_progress` or `completed`.
 
@@ -307,13 +321,26 @@ The Express server also serves the built client from `client/dist`, so the API a
 - `trust proxy` is enabled so rate limiting sees the real client address behind the host's proxy.
 - Create the admin once with `npm run create:admin --prefix server` pointed at the production database.
 
+### Production operations
+
+- Set production environment variables in the host secret manager; use HTTPS and set `CLIENT_URL` to only approved UI origins.
+- Use a MongoDB replica set or managed cluster for atomic consultation finalization. Back up the database before schema/index migrations.
+- Example logical backup: `mongodump --uri "$MONGO_URI" --archive=curelink-YYYYMMDD.archive --gzip`.
+- Example restoration to a target database: `mongorestore --uri "$RESTORE_URI" --archive=curelink-YYYYMMDD.archive --gzip --drop`. Verify the target URI and archive before using `--drop`; restore first into a non-production database and validate counts and indexes.
+- Protect backup archives with access controls and encryption at rest, and test restore procedures periodically. Backups contain sensitive medical records.
+- The server handles `SIGINT`/`SIGTERM` by stopping the missed-appointment job, closing HTTP connections, and disconnecting Mongoose. Hosting platforms should allow a shutdown grace period.
+
+See [docs/SRS-TRACEABILITY.md](docs/SRS-TRACEABILITY.md) for source-level status and unverified acceptance criteria.
+
 ---
 
 ## Known limitations
 
 - **Notifications:** Reminders are on-screen in-app notifications only; external SMS and email dispatch gateways are not integrated.
-- **Testing:** Automated end-to-end and unit test suites are slated for future development; verification is performed via the manual acceptance checklist above.
+- **Testing:** Automated end-to-end and unit test suites are slated for future development. Acceptance checks above are a checklist and are not evidence of passing tests; see the traceability document for this work's actual checks and pending verification.
 - **Patient Deletion:** Hard deletion of patient records is deliberately disabled (`501 Not Implemented`) to preserve clinical history and prevent orphaned consultations.
+- **Email:** Email delivery is optional under the supplied SRS summary. No email provider or delivery credentials are configured; use the existing in-app reminder bell and dashboard reminders.
+- **Schedule concurrency:** Unique slot and active-appointment indexes prevent duplicate starts and double booking. Cross-request overlapping custom windows are checked before insertion; multi-instance schedule editing still needs runtime concurrency verification.
 - **Legacy Endpoint:** The legacy `GET /api/appointments/patient/:patientId` endpoint is retained for API backward compatibility but not consumed by the current client.
 
 ---

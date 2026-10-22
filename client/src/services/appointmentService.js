@@ -43,6 +43,14 @@ export async function cancelAppointment(id) {
   return api(`/appointments/${id}/cancel`, { method: 'PUT' });
 }
 
+/** Reschedule an existing appointment while retaining its record/history. */
+export async function rescheduleAppointment(id, payload) {
+  return api(`/appointments/${id}/reschedule`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
 /**
  * Fetch appointments for the currently logged-in doctor.
  * Uses the /api/appointments/doctor/me endpoint.

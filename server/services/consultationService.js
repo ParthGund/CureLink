@@ -18,6 +18,9 @@ const { httpError } = require('../utils/httpError');
  */
 async function startConsultation(user, appointmentId) {
   const doctor = await doctorService.getDoctorForUser(user._id);
+  if (!doctor) {
+    throw httpError(404, 'Your doctor profile has not been set up yet. Please contact an administrator.');
+  }
 
   const appointment = await Appointment.findById(appointmentId);
 
@@ -30,20 +33,9 @@ async function startConsultation(user, appointmentId) {
     throw httpError(403, 'You can only start consultations for your own appointments.');
   }
 
-  // Guard: cancelled appointments cannot have consultations
-  if (appointment.status === 'cancelled') {
-    throw httpError(400, 'Cannot start a consultation for a cancelled appointment.');
-  }
-
-  // Guard: completed appointments cannot have new consultations
-  if (appointment.status === 'completed') {
-    throw httpError(400, 'Cannot start a consultation for a completed appointment.');
-  }
-
-  // Guard: missed appointments cannot have consultations — no reopening workflow is defined.
-  // A doctor who needs to document a missed-appointment interaction should contact support.
-  if (appointment.status === 'missed') {
-    throw httpError(400, 'Cannot start a consultation for a missed appointment.');
+  // Only active appointment states are eligible; terminal states cannot be reopened.
+  if (!['scheduled', 'upcoming', 'confirmed'].includes(appointment.status)) {
+    throw httpError(400, `Cannot start a consultation for an appointment that is ${appointment.status}.`);
   }
 
   // Guard: deleted patient or doctor on the appointment
@@ -125,7 +117,7 @@ async function getConsultationById(consultationId, user) {
   if (user.role === 'doctor') {
     const doctor = await doctorService.getDoctorForUser(user._id);
 
-    if (!consultation.doctor._id.equals(doctor._id)) {
+    if (!doctor || !consultation.doctor || !consultation.doctor._id.equals(doctor._id)) {
       throw httpError(403, 'You do not have access to this consultation.');
     }
 
@@ -135,7 +127,7 @@ async function getConsultationById(consultationId, user) {
   if (user.role === 'patient') {
     const patient = await appointmentService.getPatientForUser(user._id);
 
-    if (!patient || !consultation.patient._id.equals(patient._id)) {
+    if (!patient || !consultation.patient || !consultation.patient._id.equals(patient._id)) {
       throw httpError(403, 'You do not have access to this consultation.');
     }
 
@@ -166,44 +158,47 @@ async function getConsultationById(consultationId, user) {
  */
 async function updateConsultation(consultationId, user, input) {
   const doctor = await doctorService.getDoctorForUser(user._id);
-
-  const consultation = await Consultation.findById(consultationId);
-
-  if (!consultation) {
-    throw httpError(404, 'Consultation not found.');
+  if (!doctor) {
+    throw httpError(404, 'Your doctor profile has not been set up yet. Please contact an administrator.');
   }
-
-  if (!consultation.doctor.equals(doctor._id)) {
-    throw httpError(403, 'You can only update your own consultations.');
-  }
-
-  if (consultation.status === 'completed') {
-    throw httpError(400, 'A completed consultation cannot be edited.');
-  }
-
   // Whitelist editable fields
+  const updates = {};
   if (input.chiefComplaint !== undefined) {
-    consultation.chiefComplaint = input.chiefComplaint;
+    updates.chiefComplaint = input.chiefComplaint;
   }
   if (input.diagnosis !== undefined) {
-    consultation.diagnosis = input.diagnosis;
+    updates.diagnosis = input.diagnosis;
   }
   if (input.clinicalNotes !== undefined) {
-    consultation.clinicalNotes = input.clinicalNotes;
+    updates.clinicalNotes = input.clinicalNotes;
   }
   if (input.treatmentPlan !== undefined) {
-    consultation.treatmentPlan = input.treatmentPlan;
+    updates.treatmentPlan = input.treatmentPlan;
   }
   if (input.followUpDate !== undefined) {
-    consultation.followUpDate = input.followUpDate || null;
+    updates.followUpDate = input.followUpDate || null;
   }
   if (input.followUpInstructions !== undefined) {
-    consultation.followUpInstructions = input.followUpInstructions;
+    updates.followUpInstructions = input.followUpInstructions;
   }
 
-  await consultation.save();
+  const consultation = await Consultation.findOneAndUpdate(
+    { _id: consultationId, doctor: doctor._id, status: 'in_progress' },
+    { $set: updates },
+    { new: true, runValidators: true }
+  );
 
-  return consultation;
+  if (consultation) return consultation;
+
+  const existing = await Consultation.findById(consultationId).select('doctor status');
+  if (!existing) throw httpError(404, 'Consultation not found.');
+  if (!existing.doctor.equals(doctor._id)) {
+    throw httpError(403, 'You can only update your own consultations.');
+  }
+  throw httpError(400, existing.status === 'completed'
+    ? 'A completed consultation cannot be edited.'
+    : 'This consultation is no longer available for editing.');
+
 }
 
 /**
@@ -218,6 +213,9 @@ async function updateConsultation(consultationId, user, input) {
  */
 async function completeConsultation(consultationId, user) {
   const doctor = await doctorService.getDoctorForUser(user._id);
+  if (!doctor) {
+    throw httpError(404, 'Your doctor profile has not been set up yet. Please contact an administrator.');
+  }
 
   const consultation = await Consultation.findById(consultationId);
 
@@ -237,26 +235,25 @@ async function completeConsultation(consultationId, user) {
     throw httpError(400, 'A diagnosis is required before completing the consultation.');
   }
 
-  // Find the prescription (if any) for this consultation
-  const prescription = await Prescription.findOne({ consultation: consultationId });
-
-  // Use atomic findOneAndUpdate to prevent race conditions
   const updateData = {
     $set: {
       status: 'completed',
       completedAt: new Date(),
     }
   };
-  if (prescription) {
-    updateData.$set.prescription = prescription._id;
-  }
 
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
 
+    // Read the prescription in the same snapshot as the finalization writes.
+    const prescription = await Prescription.findOne({ consultation: consultationId }).session(session);
+    if (prescription) {
+      updateData.$set.prescription = prescription._id;
+    }
+
     const updatedConsultation = await Consultation.findOneAndUpdate(
-      { _id: consultationId, status: { $ne: 'completed' } },
+      { _id: consultationId, status: 'in_progress', diagnosis: /\S/ },
       updateData,
       { new: true, session }
     );
@@ -265,22 +262,40 @@ async function completeConsultation(consultationId, user) {
       throw httpError(400, 'Consultation is already completed or modified concurrently.');
     }
 
-    await Appointment.findByIdAndUpdate(
-      consultation.appointment,
+    const updatedAppointment = await Appointment.findOneAndUpdate(
+      {
+        _id: consultation.appointment,
+        status: { $in: ['scheduled', 'upcoming', 'confirmed'] },
+      },
       { status: 'completed' },
-      { session }
+      { session, new: true }
     );
+
+    if (!updatedAppointment) {
+      throw httpError(400, 'The appointment is no longer active and cannot be completed.');
+    }
 
     await session.commitTransaction();
     return updatedConsultation;
   } catch (err) {
-    await session.abortTransaction();
-    
+    // A failed start/commit may leave no active transaction to abort. Preserve
+    // the original error so replica-set fallback detection still works.
+    if (session.inTransaction()) {
+      await session.abortTransaction().catch(() => {});
+    }
+
     // Fallback for standalone MongoDB (no replica set)
     if (err.message && err.message.toLowerCase().includes('replica set')) {
+      const fallbackPrescription = await Prescription.findOne({ consultation: consultationId });
+      const fallbackUpdateData = {
+        $set: { ...updateData.$set },
+      };
+      if (fallbackPrescription) {
+        fallbackUpdateData.$set.prescription = fallbackPrescription._id;
+      }
       const updatedConsultation = await Consultation.findOneAndUpdate(
-        { _id: consultationId, status: { $ne: 'completed' } },
-        updateData,
+        { _id: consultationId, status: 'in_progress', diagnosis: /\S/ },
+        fallbackUpdateData,
         { new: true }
       );
 
@@ -288,14 +303,24 @@ async function completeConsultation(consultationId, user) {
         throw httpError(400, 'Consultation is already completed or modified concurrently.');
       }
 
-      await Appointment.findByIdAndUpdate(
-        consultation.appointment,
-        { status: 'completed' }
+      const updatedAppointment = await Appointment.findOneAndUpdate(
+        {
+          _id: consultation.appointment,
+          status: { $in: ['scheduled', 'upcoming', 'confirmed'] },
+        },
+        { status: 'completed' },
+        { new: true }
       );
+      if (!updatedAppointment) {
+        throw httpError(400, 'The appointment is no longer active and cannot be completed.');
+      }
       return updatedConsultation;
     } else {
       throw err;
     }
+  } finally {
+    await session.endSession();
+  }
 }
 
 module.exports = {

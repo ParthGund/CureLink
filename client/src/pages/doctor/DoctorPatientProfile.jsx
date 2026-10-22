@@ -46,7 +46,7 @@ export default function DoctorPatientProfile() {
     );
   }
 
-  const { fullName, email, phone, gender, dateOfBirth, appointments = [] } = patient;
+  const { fullName, email, phone, gender, dateOfBirth, bloodGroup, address, emergencyContact, appointments = [] } = patient;
 
   return (
     <div>
@@ -91,6 +91,18 @@ export default function DoctorPatientProfile() {
                     })
                   : '—'}
               </dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Blood Group</dt>
+              <dd>{bloodGroup || '—'}</dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Address</dt>
+              <dd>{address || '—'}</dd>
+            </div>
+            <div className="dr-apt-detail__row">
+              <dt>Emergency Contact</dt>
+              <dd>{emergencyContact || '—'}</dd>
             </div>
           </dl>
         </Card>

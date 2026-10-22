@@ -8,7 +8,7 @@ import AppointmentCard from '../common/AppointmentCard';
  * @param {function} [props.onCancelRequest] - Forwarded to each AppointmentCard.
  *                                            Called with the full appointment object.
  */
-export default function AppointmentList({ appointments, onCancelRequest }) {
+export default function AppointmentList({ appointments, onCancelRequest, onRescheduleRequest }) {
   return (
     <div className="appointment-list">
       {appointments.map((appointment) => (
@@ -16,6 +16,7 @@ export default function AppointmentList({ appointments, onCancelRequest }) {
           key={appointment._id}
           appointment={appointment}
           onCancelRequest={onCancelRequest}
+          onRescheduleRequest={onRescheduleRequest}
         />
       ))}
     </div>

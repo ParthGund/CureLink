@@ -104,8 +104,12 @@ export default function PatientDashboard() {
   const imminentAppointment = upcomingList.find((a) => isWithin24Hours(a)) ?? null;
   const showImminentBanner = !loading && imminentAppointment && !bannerDismissed;
 
-  // Recent activity — last 3 appointments across all statuses
-  const recentActivity = appointments.slice(0, DASHBOARD_RECENT_LIMIT);
+  // Recent activity shows historical records; upcoming appointments have
+  // their own reminder section and should not crowd out recent visits.
+  const recentActivity = appointments
+    .filter((appointment) => !ACTIVE_STATUSES.has(appointment.status))
+    .sort((a, b) => (getAptDate(b)?.getTime() ?? 0) - (getAptDate(a)?.getTime() ?? 0))
+    .slice(0, DASHBOARD_RECENT_LIMIT);
 
   // ── Stat card definitions ─────────────────────────────────────
   const statCards = [

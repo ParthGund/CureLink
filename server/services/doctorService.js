@@ -210,17 +210,24 @@ async function getDoctorPatients(userId) {
  */
 async function getDoctorPatientById(userId, patientId) {
   const doctor = await getDoctorForUser(userId);
+  if (!mongoose.Types.ObjectId.isValid(patientId)) {
+    throw httpError(404, "Patient not found.");
+  }
 
   const appointments = await Appointment.find({
     doctor: doctor._id,
     patient: patientId,
-  }).sort({ date: -1 });
+  })
+    .select("date timeSlot status reason")
+    .sort({ date: -1 });
 
   if (appointments.length === 0) {
     throw httpError(403, "You do not have authorization to view this patient.");
   }
 
-  const patient = await Patient.findById(patientId);
+  const patient = await Patient.findById(patientId).select(
+    "fullName email phone dateOfBirth gender bloodGroup address emergencyContact allergies chronicConditions surgeries currentMedications"
+  );
   if (!patient) {
     throw httpError(404, "Patient not found.");
   }
@@ -275,7 +282,10 @@ async function getDashboardMetrics(userId, dateString) {
   });
 
   // 4. Unique active patients count
-  const uniquePatients = await Appointment.distinct("patient", { doctor: doctor._id });
+  const uniquePatients = await Appointment.distinct("patient", {
+    doctor: doctor._id,
+    status: { $in: ["scheduled", "confirmed", "upcoming"] },
+  });
   const activePatientsCount = uniquePatients.length;
 
   // 5. Today's schedule with consultation link

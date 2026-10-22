@@ -13,6 +13,16 @@ const appointmentSchema = new mongoose.Schema(
     },
     reason: { type: String, trim: true },
     notes: { type: String, trim: true },
+    rescheduleHistory: {
+      type: [{
+        previousDate: { type: Date, required: true },
+        previousTimeSlot: { type: String, required: true },
+        newDate: { type: Date, required: true },
+        newTimeSlot: { type: String, required: true },
+        changedAt: { type: Date, default: Date.now },
+      }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

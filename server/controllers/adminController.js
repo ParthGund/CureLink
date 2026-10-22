@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
+const Consultation = require('../models/Consultation');
 const { validateDoctorCreation, validateDoctorUpdate } = require('../validators/doctorValidator');
 
 // ── Stats ──────────────────────────────────────────────────────
@@ -429,7 +430,9 @@ const getAllAppointments = async (req, res) => {
 
 /**
  * PUT /api/admin/appointments/:id/status
- * Update an appointment's status (e.g. 'cancelled', 'completed').
+ * Update an appointment's status through permitted lifecycle transitions.
+ * Completion is reserved for completeConsultation so its diagnosis and
+ * consultation updates cannot be bypassed.
  */
 const updateAppointmentStatus = async (req, res) => {
   try {
@@ -455,9 +458,9 @@ const updateAppointmentStatus = async (req, res) => {
     // Defines the complete set of valid status transitions.
     // Any transition not listed here is rejected.
     const ALLOWED_TRANSITIONS = {
-      scheduled: new Set(['upcoming', 'confirmed', 'completed', 'cancelled', 'missed']),
-      upcoming:  new Set(['confirmed', 'completed', 'cancelled', 'missed']),
-      confirmed: new Set(['completed', 'cancelled', 'missed']),
+      scheduled: new Set(['upcoming', 'confirmed', 'cancelled', 'missed']),
+      upcoming:  new Set(['confirmed', 'cancelled', 'missed']),
+      confirmed: new Set(['cancelled', 'missed']),
       // Terminal states: no transitions permitted
       completed: new Set(),
       cancelled: new Set(),
@@ -481,15 +484,28 @@ const updateAppointmentStatus = async (req, res) => {
       });
     }
 
-    appointment.status = status;
-    await appointment.save();
+    if (status === 'cancelled' && await Consultation.exists({ appointment: appointment._id })) {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot cancel an appointment that has an active or completed consultation.',
+      });
+    }
 
-    const updated = await appointment.populate([
+    // Conditional update prevents concurrent admin requests from applying a
+    // transition based on a stale status read.
+    const updatedAppointment = await Appointment.findOneAndUpdate(
+      { _id: appointment._id, status: from },
+      { $set: { status } },
+      { new: true, runValidators: true }
+    ).populate([
       { path: 'patient', select: 'fullName email' },
       { path: 'doctor', select: 'name specialization' },
     ]);
+    if (!updatedAppointment) {
+      return res.status(409).json({ success: false, message: 'Appointment changed. Refresh and try again.' });
+    }
 
-    res.json({ success: true, appointment: updated });
+    res.json({ success: true, appointment: updatedAppointment });
   } catch (error) {
     res.status(500).json({
       success: false,

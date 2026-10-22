@@ -35,6 +35,7 @@ const PATIENT_FIELDS = [
     ],
   },
   { key: 'address',     label: 'Address',      type: 'textarea', placeholder: 'Street, City, State, PIN',        section: 'basic' },
+  { key: 'emergencyContact', label: 'Emergency Contact', type: 'tel', placeholder: 'Name and phone number', section: 'basic' },
   { key: 'allergies',   label: 'Allergies',    type: 'textarea', placeholder: 'e.g. Penicillin, Peanuts (leave blank if none)', section: 'medical' },
   { key: 'chronicConditions', label: 'Chronic Conditions', type: 'textarea', placeholder: 'e.g. Asthma, Hypertension', section: 'medical' },
   { key: 'surgeries',   label: 'Past Surgeries', type: 'textarea', placeholder: 'e.g. Appendectomy 2015',        section: 'medical' },
@@ -189,6 +190,7 @@ export default function Profile({ role }) {
                           id={`profile-${key}`}
                           className="profile-form__input"
                           value={formData[key]}
+                          disabled={saving}
                           onChange={(e) => handleChange(key, e.target.value)}
                         >
                           {options.map((opt) => (
@@ -202,6 +204,7 @@ export default function Profile({ role }) {
                           rows={3}
                           placeholder={placeholder}
                           value={formData[key]}
+                          disabled={saving}
                           onChange={(e) => handleChange(key, e.target.value)}
                         />
                       ) : (
@@ -211,6 +214,7 @@ export default function Profile({ role }) {
                           type={type}
                           placeholder={placeholder}
                           value={formData[key]}
+                          disabled={saving}
                           onChange={(e) => handleChange(key, e.target.value)}
                         />
                       )}

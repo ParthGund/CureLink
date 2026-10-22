@@ -163,8 +163,6 @@ export default function AdminAppointments() {
 
       if (newStatus === 'confirmed') {
         toast.success('Appointment confirmed');
-      } else if (newStatus === 'completed') {
-        toast.success('Appointment marked as completed');
       } else if (newStatus === 'cancelled') {
         toast.error('Appointment cancelled');
       } else {
@@ -179,10 +177,6 @@ export default function AdminAppointments() {
 
   function handleConfirm(apt) {
     applyStatusChange(apt._id, 'confirmed');
-  }
-
-  function handleComplete(apt) {
-    applyStatusChange(apt._id, 'completed');
   }
 
   function requestCancel(apt) {
@@ -352,18 +346,9 @@ export default function AdminAppointments() {
                             </>
                           )}
 
-                          {/* Confirmed → Complete + Cancel */}
+                          {/* Confirmed → Cancel. Consultation completion belongs to the doctor workflow. */}
                           {isConfirmed && (
                             <>
-                              <button
-                                className="admin-apt-action admin-apt-action--complete"
-                                type="button"
-                                disabled={isUpdating}
-                                onClick={() => handleComplete(apt)}
-                                aria-label={`Mark appointment for ${patientName} as completed`}
-                              >
-                                {isUpdating ? '…' : 'Complete'}
-                              </button>
                               <button
                                 className="admin-apt-action admin-apt-action--cancel"
                                 type="button"

@@ -1,4 +1,3 @@
-```javascript
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { validateRegistration, validateLogin } = require('../validators/authValidator');
@@ -409,4 +408,4 @@ module.exports = {
   getMe,
   updateMe,
 };
-```
+

@@ -1,11 +1,22 @@
+```javascript
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { validateRegistration, validateLogin } = require('../validators/authValidator');
 const { validatePatientProfileUpdate } = require('../validators/patientProfileValidator');
 
 const PATIENT_PROFILE_SELECT = [
-  'fullName', 'email', 'phone', 'dateOfBirth', 'gender', 'bloodGroup', 'address',
-  'emergencyContact', 'allergies', 'chronicConditions', 'surgeries', 'currentMedications',
+  'fullName',
+  'email',
+  'phone',
+  'dateOfBirth',
+  'gender',
+  'bloodGroup',
+  'address',
+  'emergencyContact',
+  'allergies',
+  'chronicConditions',
+  'surgeries',
+  'currentMedications',
 ].join(' ');
 
 /**
@@ -37,8 +48,8 @@ const registerPatient = async (req, res) => {
       });
     }
 
-    // Public registration ALWAYS creates a patient.
-    // Admin and doctor accounts are created through controlled server-side mechanisms.
+    // Public registration always creates a patient.
+    // Doctor and admin accounts must be created through controlled server-side mechanisms.
     const user = await User.create({
       name: name.trim(),
       email: trimmedEmail,
@@ -48,7 +59,7 @@ const registerPatient = async (req, res) => {
 
     generateToken(res, user._id, user.role);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Account created successfully.',
       user: {
@@ -59,7 +70,25 @@ const registerPatient = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email already exists.',
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      const firstError =
+        Object.values(error.errors)[0]?.message ||
+        'Registration information is invalid.';
+
+      return res.status(400).json({
+        success: false,
+        message: firstError,
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: 'Registration failed. Please try again.',
     });
@@ -84,8 +113,11 @@ const loginPatient = async (req, res) => {
     }
 
     const { email, password } = req.body;
+    const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({
+      email: normalizedEmail,
+    }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -114,7 +146,7 @@ const loginPatient = async (req, res) => {
 
     generateToken(res, user._id, user.role);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       user: {
         id: user._id,
@@ -124,7 +156,7 @@ const loginPatient = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Login failed. Please try again.',
     });
@@ -144,7 +176,7 @@ const logoutUser = (req, res) => {
     expires: new Date(0),
   });
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: 'Logged out successfully.',
   });
@@ -167,12 +199,16 @@ const getMe = async (req, res) => {
     }
 
     let patientData = null;
+
     if (user.role === 'patient') {
       const Patient = require('../models/Patient');
-      patientData = await Patient.findOne({ userId: user._id }).select(PATIENT_PROFILE_SELECT);
+
+      patientData = await Patient.findOne({
+        userId: user._id,
+      }).select(PATIENT_PROFILE_SELECT);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       user: {
         id: user._id,
@@ -185,7 +221,7 @@ const getMe = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to retrieve profile.',
     });
@@ -193,14 +229,16 @@ const getMe = async (req, res) => {
 };
 
 /**
- * @desc    Update current authenticated user (and patient profile if patient)
+ * @desc    Update current authenticated user and patient profile
  * @route   PUT /api/auth/me
  * @access  Private
  */
 const updateMe = async (req, res) => {
   try {
+    // Validate patient profile fields before updating anything.
     if (req.user.role === 'patient') {
       const { valid, errors } = validatePatientProfileUpdate(req.body);
+
       if (!valid) {
         return res.status(400).json({
           success: false,
@@ -211,60 +249,121 @@ const updateMe = async (req, res) => {
     }
 
     const user = await User.findById(req.user.id);
+
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
     }
 
-    // Only the authenticated user's basic account fields are mutable here.
+    // Update only basic account fields.
+    // Password and role changes are not permitted through this endpoint.
     let userChanged = false;
+
     if (req.body.name !== undefined) {
+      if (typeof req.body.name !== 'string' || !req.body.name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name must be a non-empty string.',
+        });
+      }
+
       user.name = req.body.name.trim();
       userChanged = true;
     }
+
     if (req.body.email !== undefined) {
+      if (typeof req.body.email !== 'string' || !req.body.email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email must be a non-empty string.',
+        });
+      }
+
       user.email = req.body.email.trim().toLowerCase();
       userChanged = true;
     }
+
     if (req.body.phone !== undefined) {
+      if (typeof req.body.phone !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone must be a string.',
+        });
+      }
+
       user.phone = req.body.phone.trim();
       userChanged = true;
     }
-    if (userChanged) await user.save();
+
+    if (userChanged) {
+      await user.save();
+    }
 
     let patientData = null;
+
     if (user.role === 'patient') {
       const Patient = require('../models/Patient');
-      let patient = await Patient.findOne({ userId: user._id });
-      
+
+      let patient = await Patient.findOne({
+        userId: user._id,
+      });
+
+      // Create a profile if one does not exist yet.
       if (!patient) {
-        // Fallback for an uninitialized patient profile
         patient = new Patient({
           userId: user._id,
           fullName: user.name,
           email: user.email,
-          phone: user.phone
+          phone: user.phone || '',
         });
       } else {
         patient.fullName = user.name;
         patient.email = user.email;
       }
 
-      if (req.body.phone !== undefined || user.phone) patient.phone = user.phone || '';
-      if (req.body.dateOfBirth !== undefined) patient.dateOfBirth = req.body.dateOfBirth || null;
-      if (req.body.gender !== undefined) patient.gender = req.body.gender || undefined;
-      if (req.body.bloodGroup !== undefined) patient.bloodGroup = req.body.bloodGroup || undefined;
-      for (const field of [
-        'address', 'emergencyContact', 'allergies', 'chronicConditions',
-        'surgeries', 'currentMedications',
-      ]) {
-        if (req.body[field] !== undefined) patient[field] = req.body[field];
+      // Synchronize basic account information.
+      if (req.body.phone !== undefined || user.phone) {
+        patient.phone = user.phone || '';
+      }
+
+      // Update only explicitly supplied patient profile fields.
+      if (req.body.dateOfBirth !== undefined) {
+        patient.dateOfBirth = req.body.dateOfBirth || null;
+      }
+
+      if (req.body.gender !== undefined) {
+        patient.gender = req.body.gender || undefined;
+      }
+
+      if (req.body.bloodGroup !== undefined) {
+        patient.bloodGroup = req.body.bloodGroup || undefined;
+      }
+
+      const patientFields = [
+        'address',
+        'emergencyContact',
+        'allergies',
+        'chronicConditions',
+        'surgeries',
+        'currentMedications',
+      ];
+
+      for (const field of patientFields) {
+        if (req.body[field] !== undefined) {
+          patient[field] = req.body[field];
+        }
       }
 
       await patient.save();
-      patientData = await Patient.findById(patient._id).select(PATIENT_PROFILE_SELECT);
+
+      patientData = await Patient.findById(patient._id).select(
+        PATIENT_PROFILE_SELECT
+      );
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Profile updated successfully.',
       user: {
@@ -279,13 +378,24 @@ const updateMe = async (req, res) => {
     });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email already exists.',
+      });
     }
+
     if (error.name === 'ValidationError') {
-      const firstError = Object.values(error.errors)[0]?.message || 'Profile information is invalid.';
-      return res.status(400).json({ success: false, message: firstError });
+      const firstError =
+        Object.values(error.errors)[0]?.message ||
+        'Profile information is invalid.';
+
+      return res.status(400).json({
+        success: false,
+        message: firstError,
+      });
     }
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: 'Failed to update profile.',
     });
@@ -299,3 +409,4 @@ module.exports = {
   getMe,
   updateMe,
 };
+```

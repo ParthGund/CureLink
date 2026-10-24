@@ -361,13 +361,9 @@ export default function AdminAppointments() {
                             </>
                           )}
 
-                          {/* Final states → read-only badge */}
+                          {/* Final states → muted "no action" */}
                           {isFinal && (
-                            <span
-                              className={`admin-apt-done${apt.status === 'cancelled' ? ' admin-apt-done--cancelled' : ''}${apt.status === 'missed' ? ' admin-apt-done--missed' : ''}`}
-                            >
-                              {apt.status === 'completed' ? 'Done' : apt.status === 'cancelled' ? 'Cancelled' : 'Missed'}
-                            </span>
+                            <span className="admin-apt-no-action" aria-label="No action available">—</span>
                           )}
                         </div>
                       </td>

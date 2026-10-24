@@ -882,6 +882,169 @@ select.modal-input {
 .admin-apt-done--missed {
   color: #8b2d36;
 }
+.admin-apt-no-action {
+  font-size: 13px;
+  font-weight: 500;
+  color: #a0aec0;
+  display: block;
+  text-align: center;
+  user-select: none;
+}
+
+/* ── Doctor Patient Profile (dpp) ───────────────────────────────── */
+
+/* 2-column responsive grid */
+.dpp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 24px;
+  margin-top: 28px;
+}
+@media (max-width: 860px) {
+  .dpp-grid { grid-template-columns: 1fr; }
+}
+
+/* Each column is a flex-column stack */
+.dpp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Card title row */
+.dpp-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--navy);
+}
+.dpp-card-title__icon {
+  color: var(--teal);
+}
+
+/* ── Identity Section ─── */
+.dpp-identity-list {
+  margin: 0;
+  padding: 8px 20px 12px;
+}
+.dpp-identity-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.dpp-identity-row:last-child {
+  border-bottom: 0;
+}
+.dpp-identity-row__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--slate);
+}
+.dpp-identity-row__icon {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+.dpp-identity-row__value {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy);
+  word-break: break-word;
+}
+
+/* Blood group badge */
+.dpp-blood-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* ── Medical Details Section ─── */
+.dpp-med-body {
+  padding: 12px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dpp-med-section {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--soft-blue);
+}
+.dpp-med-section__title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--slate);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Pill tags */
+.dpp-pill-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dpp-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dpp-pill--allergy   { background: #fee2e2; color: #b91c1c; }
+.dpp-pill--condition { background: #fef3cd; color: #92600a; }
+.dpp-pill--surgery   { background: #e0e7ff; color: #3730a3; }
+.dpp-pill--medication { background: #d1fae5; color: #065f46; }
+.dpp-none {
+  font-size: 13px;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+/* ── Appointment History ─── */
+.dpp-apt-count {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--soft-blue);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--slate);
+}
+.dpp-apt-reason {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--slate);
+  font-size: 13px;
+}
+.dpp-muted {
+  color: #a0aec0;
+}
+
 
 /* ── Cancel confirmation modal ───────────────────────────────── */
 .cancel-modal-body {
@@ -1524,37 +1687,78 @@ select.modal-input {
   font-weight: 600;
 }
 
-/* Interactive chip — available slot */
+/* Interactive chip — available slot (medical time-pill) */
 .slot-chip--available {
-  display: inline-block;
-  padding: 7px 16px;
-  border: 1.5px solid #b8e8e3;
-  border-radius: 8px;
-  background: #f0faf9;
-  color: var(--teal-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  background: #fff;
+  color: var(--navy);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition: background 0.13s ease, border-color 0.13s ease, color 0.13s ease, box-shadow 0.13s ease;
 }
 .slot-chip--available:hover {
-  background: #d6f3f0;
   border-color: var(--teal);
+  background: #f0faf9;
+  color: var(--teal-dark);
+  box-shadow: 0 0 0 3px rgb(4 155 144 / 10%);
 }
 .slot-chip--available:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 2px;
 }
-/* Selected state */
-.slot-chip--selected {
+.slot-chip--available:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* Selected state — brand teal fill, high-contrast white text */
+.slot-chip--selected,
+.slot-chip--available.slot-chip--selected {
   background: var(--teal);
   border-color: var(--teal);
   color: #fff;
+  box-shadow: 0 2px 8px rgb(4 155 144 / 28%);
 }
-.slot-chip--selected:hover {
+.slot-chip--selected:hover,
+.slot-chip--available.slot-chip--selected:hover {
   background: var(--teal-dark);
   border-color: var(--teal-dark);
+}
+
+/* ── Shift groups (Morning / Afternoon / Evening) ─────────────── */
+.slot-shifts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+.slot-shift {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.slot-shift__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.slot-shift__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* No-slots message */

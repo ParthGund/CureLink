@@ -7,6 +7,40 @@ import { getAvailableSlots, bookAppointment } from "../../services/appointmentSe
 import { getDoctors } from "../../services/doctorService";
 import { useToast } from "../../context/ToastContext";
 
+// ── Shift bucketing helpers ──────────────────────────────────────
+function slotMinutes(label) {
+  if (!label) return -1;
+  const ampm = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = parseInt(ampm[2], 10);
+    const isPM = ampm[3].toUpperCase() === 'PM';
+    if (isPM && h !== 12) h += 12;
+    if (!isPM && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const h24 = label.match(/^(\d{1,2}):(\d{2})$/);
+  if (h24) return parseInt(h24[1], 10) * 60 + parseInt(h24[2], 10);
+  return -1;
+}
+const SHIFTS = [
+  { key: 'morning',   label: 'Morning',   icon: '\uD83C\uDF05', maxMinutes: 719 },
+  { key: 'afternoon', label: 'Afternoon', icon: '\u2600\uFE0F', maxMinutes: 1019 },
+  { key: 'evening',   label: 'Evening',   icon: '\uD83C\uDF06', maxMinutes: Infinity },
+];
+function groupByShift(slots) {
+  const groups = { morning: [], afternoon: [], evening: [] };
+  slots.forEach((label) => {
+    const mins = slotMinutes(label);
+    if (mins < 720) groups.morning.push(label);
+    else if (mins < 1020) groups.afternoon.push(label);
+    else groups.evening.push(label);
+  });
+  return SHIFTS
+    .map((shift) => ({ ...shift, slots: groups[shift.key] }))
+    .filter((shift) => shift.slots.length > 0);
+}
+
 export default function BookAppointment() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -236,16 +270,28 @@ export default function BookAppointment() {
             ) : (
               <Card className="booking-card">
                 <h2>Available times</h2>
-                <div className="slot-buttons">
-                  {slots.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={selectedSlot === s ? "slot slot--selected" : "slot"}
-                      onClick={() => setSelectedSlot(s)}
-                    >
-                      {s}
-                    </button>
+                <div className="slot-shifts">
+                  {groupByShift(slots).map(({ key, label, icon, slots: shiftSlots }) => (
+                    <div key={key} className="slot-shift">
+                      <p className="slot-shift__label">
+                        <span aria-hidden="true">{icon}</span> {label}
+                      </p>
+                      <div className="slot-shift__chips">
+                        {shiftSlots.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className={`slot-chip slot-chip--available${
+                              selectedSlot === s ? ' slot-chip--selected' : ''
+                            }`}
+                            aria-pressed={selectedSlot === s}
+                            onClick={() => setSelectedSlot(s)}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </Card>

@@ -42,6 +42,69 @@ const POPULATE_DOCTOR = { path: 'doctor', select: 'name specialization' };
 const POPULATE_CONSULTATION = { path: 'consultation', select: 'status completedAt patient doctor' };
 
 /**
+ * True when the error means the server cannot run transactions
+ * (standalone MongoDB without a replica set).
+ *
+ * @param {Error} error
+ * @returns {boolean}
+ */
+function isTransactionUnsupported(error) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('replica set') || message.includes('transaction numbers are only allowed');
+}
+
+let warnedAboutFallback = false;
+
+function warnAboutFallbackOnce() {
+  if (warnedAboutFallback) return;
+  warnedAboutFallback = true;
+  console.warn('[prescriptions] Transactions are not supported by this MongoDB deployment; saving without a transaction.');
+}
+
+/**
+ * Save (or delete) the prescription for an in-progress consultation.
+ *
+ * The consultation is written first, which also guards against concurrent
+ * finalization. Pass a `session` to run inside a transaction; omit it for the
+ * standalone fallback.
+ *
+ * @param {object} args
+ * @param {string} args.consultationId
+ * @param {object} args.doctor - Doctor document of the signed-in doctor.
+ * @param {object[]} args.items - Validated prescription items.
+ * @param {object} [args.session] - Optional Mongoose session.
+ * @returns {Promise<object|null>} The saved prescription, or null when deleted.
+ */
+async function writePrescription({ consultationId, doctor, items, session }) {
+  const options = session ? { session } : {};
+
+  const editableConsultation = await Consultation.findOneAndUpdate(
+    { _id: consultationId, doctor: doctor._id, status: 'in_progress' },
+    { $set: { updatedAt: new Date() } },
+    { new: true, ...options }
+  );
+  if (!editableConsultation) {
+    throw httpError(400, 'This consultation is no longer available for prescription changes.');
+  }
+
+  if (items.length === 0) {
+    await Prescription.deleteOne({ consultation: consultationId }, options);
+    return null;
+  }
+
+  return Prescription.findOneAndUpdate(
+    { consultation: consultationId },
+    {
+      consultation: consultationId,
+      patient: editableConsultation.patient,
+      doctor: doctor._id,
+      items: items.map(sanitiseItem),
+    },
+    { upsert: true, new: true, runValidators: true, ...options }
+  );
+}
+
+/**
  * Create or replace prescription items for a consultation.
  *
  * Patient and doctor are always copied from the consultation.
@@ -75,48 +138,31 @@ async function upsertPrescription(user, consultationId, items) {
     throw httpError(400, 'Prescriptions can only be managed for in-progress consultations.');
   }
 
-  const session = await mongoose.startSession();
+  const write = { consultationId, doctor, items };
+
   let prescription;
+  const session = await mongoose.startSession();
   try {
     session.startTransaction();
-
-    // Write the consultation in the same transaction as the prescription.
-    // This creates a write conflict with concurrent finalization, preventing a
-    // prescription from being added or changed after the consultation closes.
-    const editableConsultation = await Consultation.findOneAndUpdate(
-      { _id: consultationId, doctor: doctor._id, status: 'in_progress' },
-      { $set: { updatedAt: new Date() } },
-      { new: true, session }
-    );
-    if (!editableConsultation) {
-      throw httpError(400, 'This consultation is no longer available for prescription changes.');
-    }
-
-    if (items.length === 0) {
-      await Prescription.deleteOne({ consultation: consultationId }, { session });
-      await session.commitTransaction();
-      return { prescription: null };
-    }
-
-    const sanitisedItems = items.map(sanitiseItem);
-    prescription = await Prescription.findOneAndUpdate(
-      { consultation: consultationId },
-      {
-        consultation: consultationId,
-        patient: editableConsultation.patient,
-        doctor: doctor._id,
-        items: sanitisedItems,
-      },
-      { upsert: true, new: true, runValidators: true, session }
-    );
+    prescription = await writePrescription({ ...write, session });
     await session.commitTransaction();
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction().catch(() => {});
     }
-    throw error;
+    if (!isTransactionUnsupported(error)) throw error;
+
+    // Standalone MongoDB (no replica set): repeat the same writes without a
+    // transaction. Same behaviour as completeConsultation's fallback; the
+    // writes are not atomic, so use a replica set where that matters.
+    warnAboutFallbackOnce();
+    prescription = await writePrescription(write);
   } finally {
     await session.endSession();
+  }
+
+  if (!prescription) {
+    return { prescription: null };
   }
 
   const populated = await Prescription.findById(prescription._id)

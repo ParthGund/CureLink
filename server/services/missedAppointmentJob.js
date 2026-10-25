@@ -1,16 +1,31 @@
 /**
  * Background job: mark past "scheduled" appointments as "missed".
  *
- * An appointment is considered missed when its date + timeSlot end time
- * has already passed, its status is still "scheduled", and no Consultation
- * has been started or completed for it.
+ * An appointment is considered missed when its slot has ended (plus a short
+ * grace period), its status is still "scheduled", and no Consultation has
+ * been started or completed for it.
  *
- * The job runs once on server startup and then on a configurable interval
- * (default: every 15 minutes).
+ * Safety rules:
+ *   - Appointments that already have a consultation are never swept, so a
+ *     doctor who is seeing the patient is not affected.
+ *   - Same-day appointments get a grace period after the slot ends, because a
+ *     doctor can start a consultation late.
+ *   - Every write is conditional on status "scheduled", so an appointment
+ *     that was completed or cancelled in the meantime is never overwritten.
+ *   - If a consultation is started between the check and the write, the
+ *     appointment is put back to "scheduled".
+ *
+ * The job runs once on server startup and then every 15 minutes.
  */
 
 const Appointment = require('../models/Appointment');
 const Consultation = require('../models/Consultation');
+
+/** Slot length used when the doctor has none configured. */
+const DEFAULT_SLOT_MINUTES = 30;
+
+/** Extra time after a same-day slot ends before it is flagged as missed. */
+const GRACE_MINUTES = 30;
 
 /**
  * Parse a 12-hour display label ("9:00 AM", "12:30 PM") back to
@@ -70,80 +85,115 @@ function parseTimezoneOffsetMinutes(val) {
 }
 
 /**
- * Sweep all "scheduled" appointments whose slot time has passed and
- * bulk-update them to "missed", skipping any appointment with an existing Consultation.
+ * Keep only the appointment ids that have no consultation.
  *
- * Respects process.env.CLINIC_TZ_OFFSET for local calendar day and time calculations.
- *
- * @returns {number} Total number of appointments marked as missed.
+ * @param {Array} ids - Appointment ids.
+ * @returns {Promise<Array>} Ids without a consultation.
  */
-async function sweepMissedAppointments() {
-  // Query all appointments that already have an associated consultation
-  const consultedAptIds = await Consultation.distinct('appointment');
-  const notConsultedFilter =
-    consultedAptIds && consultedAptIds.length > 0
-      ? { _id: { $nin: consultedAptIds } }
-      : {};
+async function withoutConsultation(ids) {
+  if (ids.length === 0) return [];
 
-  // Timezone calculation
-  const tzOffsetMinutes = parseTimezoneOffsetMinutes(process.env.CLINIC_TZ_OFFSET);
-  const tzOffsetMs = tzOffsetMinutes * 60 * 1000;
+  const consulted = await Consultation.distinct('appointment', {
+    appointment: { $in: ids },
+  });
+  const consultedSet = new Set(consulted.map(String));
 
-  const nowUtc = new Date();
-  const clinicNow = new Date(nowUtc.getTime() + tzOffsetMs);
+  return ids.filter((id) => !consultedSet.has(String(id)));
+}
 
-  const clinicYear = clinicNow.getUTCFullYear();
-  const clinicMonth = clinicNow.getUTCMonth();
-  const clinicDate = clinicNow.getUTCDate();
+/**
+ * Put back any just-marked appointment that has a consultation by now.
+ * Covers a consultation started between the check and the write.
+ *
+ * @param {Array} ids - Appointment ids that were just marked missed.
+ * @returns {Promise<number>} Number of appointments restored.
+ */
+async function restoreConsulted(ids) {
+  const consulted = await Consultation.distinct('appointment', {
+    appointment: { $in: ids },
+  });
+  if (consulted.length === 0) return 0;
 
-  // In the DB, appointment dates are stored at UTC midnight of the calendar date
-  const clinicTodayUtcDate = new Date(Date.UTC(clinicYear, clinicMonth, clinicDate, 0, 0, 0, 0));
-  const clinicTodayEndUtcDate = new Date(Date.UTC(clinicYear, clinicMonth, clinicDate, 23, 59, 59, 999));
+  const result = await Appointment.updateMany(
+    { _id: { $in: consulted }, status: 'missed' },
+    { $set: { status: 'scheduled' } },
+  );
+  return result.modifiedCount || 0;
+}
 
-  // Current minutes since midnight in the clinic's local timezone
-  const clinicNowMinutes = clinicNow.getUTCHours() * 60 + clinicNow.getUTCMinutes();
+/**
+ * Mark the given appointments as missed, only if they are still "scheduled".
+ *
+ * @param {Array} ids - Candidate appointment ids.
+ * @returns {Promise<number>} Number of appointments left marked as missed.
+ */
+async function markMissed(ids) {
+  const candidates = await withoutConsultation(ids);
+  if (candidates.length === 0) return 0;
 
-  // ── Step 1: Bulk-mark scheduled appointments before today at the clinic ──
-  const bulkResult = await Appointment.updateMany(
-    {
-      status: 'scheduled',
-      date: { $lt: clinicTodayUtcDate },
-      ...notConsultedFilter,
-    },
+  const result = await Appointment.updateMany(
+    { _id: { $in: candidates }, status: 'scheduled' },
     { $set: { status: 'missed' } },
   );
+  const marked = result.modifiedCount || 0;
+  if (marked === 0) return 0;
 
-  let marked = bulkResult.modifiedCount || 0;
+  return marked - (await restoreConsulted(candidates));
+}
 
-  // ── Step 2: Check today's scheduled appointments slot-by-slot ─────────────
-  const todayScheduled = await Appointment.find({
+/**
+ * Sweep "scheduled" appointments whose slot has passed and mark them missed.
+ *
+ *   1. Everything on an earlier calendar day than the clinic's today.
+ *   2. Today's appointments whose slot (start + the doctor's slot length)
+ *      ended more than GRACE_MINUTES ago.
+ *
+ * Respects process.env.CLINIC_TZ_OFFSET for the clinic's local day and time.
+ *
+ * @returns {Promise<number>} Total number of appointments marked as missed.
+ */
+async function sweepMissedAppointments() {
+  const tzOffsetMinutes = parseTimezoneOffsetMinutes(process.env.CLINIC_TZ_OFFSET);
+  const clinicNow = new Date(Date.now() + tzOffsetMinutes * 60 * 1000);
+
+  const year = clinicNow.getUTCFullYear();
+  const month = clinicNow.getUTCMonth();
+  const day = clinicNow.getUTCDate();
+
+  // Appointment dates are stored at UTC midnight of the calendar date.
+  const todayStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+  const todayEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+  const nowMinutes = clinicNow.getUTCHours() * 60 + clinicNow.getUTCMinutes();
+
+  // Step 1: earlier days
+  const earlier = await Appointment.find({
     status: 'scheduled',
-    date: { $gte: clinicTodayUtcDate, $lte: clinicTodayEndUtcDate },
-    ...notConsultedFilter,
-  });
+    date: { $lt: todayStart },
+  }).select('_id').lean();
 
-  const idsToMark = [];
+  let marked = await markMissed(earlier.map((apt) => apt._id));
 
-  for (const apt of todayScheduled) {
-    const slotMinutes = parseDisplayTime(apt.timeSlot);
-    if (slotMinutes === null) continue;
+  // Step 2: today, slot by slot
+  const today = await Appointment.find({
+    status: 'scheduled',
+    date: { $gte: todayStart, $lte: todayEnd },
+  })
+    .select('_id timeSlot doctor')
+    .populate('doctor', 'slotDurationMinutes')
+    .lean();
 
-    // Consider a 30-minute slot duration as the default window.
-    // The appointment is missed once the slot's end time has passed.
-    const slotEnd = slotMinutes + 30;
+  const overdue = [];
+  for (const apt of today) {
+    const start = parseDisplayTime(apt.timeSlot);
+    if (start === null) continue; // unparseable label: leave it alone
 
-    if (clinicNowMinutes >= slotEnd) {
-      idsToMark.push(apt._id);
+    const length = apt.doctor?.slotDurationMinutes || DEFAULT_SLOT_MINUTES;
+    if (nowMinutes >= start + length + GRACE_MINUTES) {
+      overdue.push(apt._id);
     }
   }
 
-  if (idsToMark.length > 0) {
-    const result = await Appointment.updateMany(
-      { _id: { $in: idsToMark } },
-      { $set: { status: 'missed' } },
-    );
-    marked += result.modifiedCount || 0;
-  }
+  marked += await markMissed(overdue);
 
   return marked;
 }

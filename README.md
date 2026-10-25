@@ -59,7 +59,7 @@ Request flow: route, then `protect` / `authorize`, then validator, then controll
 ### Prerequisites
 
 - A current LTS release of Node.js
-- A MongoDB database. Use a replica set (including a single-node local replica set) for transaction-backed consultation completion and prescription finalization.
+- A MongoDB database. Use a replica set (including a single-node local replica set or Atlas) for transaction-backed consultation completion and prescription saving. A standalone `mongod` also works: both operations fall back to sequential, non-atomic writes.
 
 ### Setup
 
@@ -257,7 +257,7 @@ Administrators can deactivate and reactivate patient accounts without deleting c
 
 ### Data integrity
 
-- Completion writes consultation and appointment updates inside a MongoDB transaction. The code retains a sequential fallback for standalone MongoDB development, but that fallback is not atomic. Deployments that require reliable finalization must use a replica set or a managed MongoDB service with transaction support. Do not treat fallback operation as transaction-equivalent.
+- Completion writes consultation and appointment updates inside a MongoDB transaction. The code retains a sequential fallback for standalone MongoDB development, but that fallback is not atomic. Deployments that require reliable finalization must use a replica set or a managed MongoDB service with transaction support. Saving a prescription follows the same pattern: it runs in a transaction and falls back to sequential writes on a standalone server. Do not treat fallback operation as transaction-equivalent.
 - Immutability of completed records is enforced in the service layer, not by database constraints.
 - Cancelling an appointment is refused once its consultation is `in_progress` or `completed`.
 
@@ -268,10 +268,17 @@ Administrators can deactivate and reactivate patient accounts without deleting c
 
 ### Automated "Missed" Appointment Sweeper
 
-A background job (`missedAppointmentJob.js`) runs upon server startup and repeats every 15 minutes:
-- Sweeps past appointments with status `scheduled` whose date and slot end time have passed, automatically transitioning them to `missed`.
-- Respects `process.env.CLINIC_TZ_OFFSET` to determine the clinic's local midnight and wall-clock time.
-- Excludes appointments that already have an associated `Consultation` document (either `in_progress` or `completed`).
+A background job (`missedAppointmentJob.js`) runs on server startup and repeats every 15 minutes. It changes `scheduled` appointments to `missed` when:
+
+- the appointment is on an earlier day than the clinic's today, or
+- it is today and the slot (start time plus the doctor's slot length, 30 minutes if unset) ended more than 30 minutes ago.
+
+Safeguards:
+
+- Appointments that already have a consultation (in progress or completed) are never swept.
+- Every update is conditional on the status still being `scheduled`, so an appointment completed or cancelled in the meantime is not overwritten.
+- If a consultation is started between the check and the update, the appointment is set back to `scheduled`.
+- The clinic's local day and time come from `CLINIC_TZ_OFFSET` (for example `+05:30`; defaults to UTC).
 
 ### Admin Lifecycle Guards (FR-10)
 
@@ -338,7 +345,7 @@ See [docs/SRS-TRACEABILITY.md](docs/SRS-TRACEABILITY.md) for source-level status
 
 - **Notifications:** Reminders are on-screen in-app notifications only; external SMS and email dispatch gateways are not integrated.
 - **Testing:** Automated end-to-end and unit test suites are slated for future development. Acceptance checks above are a checklist and are not evidence of passing tests; see the traceability document for this work's actual checks and pending verification.
-- **Patient Deletion:** Hard deletion of patient records is deliberately disabled (`501 Not Implemented`) to preserve clinical history and prevent orphaned consultations.
+- **Patient accounts:** Patients are deactivated rather than deleted, which preserves their clinical history and prevents orphaned consultations.
 - **Email:** Email delivery is optional under the supplied SRS summary. No email provider or delivery credentials are configured; use the existing in-app reminder bell and dashboard reminders.
 - **Schedule concurrency:** Unique slot and active-appointment indexes prevent duplicate starts and double booking. Cross-request overlapping custom windows are checked before insertion; multi-instance schedule editing still needs runtime concurrency verification.
 - **Legacy Endpoint:** The legacy `GET /api/appointments/patient/:patientId` endpoint is retained for API backward compatibility but not consumed by the current client.

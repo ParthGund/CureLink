@@ -96,23 +96,6 @@ export default function Profile({ role }) {
   const [saving, setSaving]     = useState(false);
   const [formData, setFormData] = useState(() => buildFormData(user, fields));
 
-  // Temporary diagnostics for the profile edit-mode issue. Remove after tracing.
-  useEffect(() => {
-    console.info('[PROFILE-DIAG] Profile mounted');
-    return () => console.info('[PROFILE-DIAG] Profile unmounted');
-  }, []);
-
-  useEffect(() => {
-    console.info('[PROFILE-DIAG] editing state changed:', editing);
-  }, [editing]);
-
-  useEffect(() => {
-    console.info('[PROFILE-DIAG] auth state changed:', {
-      authLoading,
-      hasUser: Boolean(user),
-    });
-  }, [authLoading, user]);
-
   // Hydrate the form when auth data arrives or changes, but never replace an
   // in-progress draft. A profile refresh during editing must not reset fields.
   useEffect(() => {
@@ -130,14 +113,7 @@ export default function Profile({ role }) {
 
   function handleCancel() {
     setFormData(buildFormData(user, fields));
-    console.info('[PROFILE-DIAG] setEditing(false) called from handleCancel');
     setEditing(false);
-  }
-
-  function handleEdit() {
-    console.info('[PROFILE-DIAG] handleEdit() called');
-    setFormData(buildFormData(user, fields));
-    setEditing(true);
   }
 
   async function handleSave(e) {
@@ -152,7 +128,6 @@ export default function Profile({ role }) {
     try {
       await updateProfile(formData);
       toast.success('Profile updated successfully.');
-      console.info('[PROFILE-DIAG] setEditing(false) called after successful handleSave');
       setEditing(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update profile. Please try again.');

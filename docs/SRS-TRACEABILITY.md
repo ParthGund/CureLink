@@ -32,16 +32,14 @@ This document maps each requirement of the SRS to its implementation. Setup, API
 
 | ID | Category | Requirement (SRS) | Implementation & Measures in Place | Verification Evidence |
 |---|---|---|---|---|
-| ID | Category | Requirement (SRS) | Implementation & Measures in Place | Verification Evidence |
-|---|---|---|---|---|
 | NFR-01 | Performance | Respond to user actions without a noticeable delay during normal use | Gzip response compression (`compression`), route-level code splitting with `React.lazy()` / `Suspense` reducing initial client bundle by 44% (from 480.2 kB to 269.0 kB), HTTP cache-control (`maxAge: 1d`) on built assets, indexed unique lookups, on-demand slot calculation, and skeleton loaders. | Frontend build bundle analysis: initial chunk 269.0 kB; measured operational API latencies: `GET /api/appointments/me`: 39ms, `GET /api/doctors`: 43ms, `GET /api/admin/patients`: 63ms, `GET /api/doctors/:id/availability`: 88ms, `GET /api/admin/stats`: 213ms (well below 1000ms threshold). |
 | NFR-02 | Scalability | Remain responsive as records and concurrent users grow | Stateless API with cookie-based JWT; compound indexes on `Appointment` (`{ patient: 1, date: -1 }`, `{ doctor: 1, date: -1 }`, `{ status: 1 }`) and `Doctor` (`{ specialization: 1 }`); backwards-compatible pagination (`page`, `limit`) with `.lean()` queries on admin patient, doctor, and appointment listings. | Verified by `tests/admin.test.js` (pagination metadata, limit capping, lean execution) and index validation tests. |
 | NFR-03 | Security | Authenticated, role-authorised endpoints; medical records only for patient and authorised clinical staff; no credentials in source control; audit trail | JWT in httpOnly SameSite=Strict cookie; bcryptjs hashing; `protect` and `authorize` middleware on all sensitive endpoints; strict ownership enforcement; `auditLogger` recording `USER_LOGIN`, `PATIENT_RECORD_ACCESSED`, `CONSULTATION_COMPLETED`, and `PATIENT_STATUS_CHANGED` in `AuditLog` collection; helmet, baseline rate limiting (`express-rate-limit`); strict `.env` git-exclusion. | Verified by `tests/auth.test.js` (10 tests including unauthenticated and cross-role rejections), `tests/consultations_prescriptions.test.js` (4 tests), and `tests/admin.test.js` (4 tests). |
 | NFR-04 | Reliability | User-submitted data is persisted so work is not lost on an unexpected disconnection; resilience to network/DB disruptions | Dual-path persistence for consultations and prescriptions (atomic MongoDB multi-document transactions with compensation rollback in standalone sequential fallback to prevent partial records); conditional updates; Mongoose connection resilience event listeners; process-level `unhandledRejection` and `uncaughtException` fail-safes; graceful SIGINT/SIGTERM shutdown. | Verified by `tests/resilience_reliability.test.js` (3 tests: connection recovery handling, input malformation recovery, transaction rollback safety). |
-| NFR-05 | Usability | Operable without prior training, with visible feedback for every action | Toast notifications for every outcome; confirmation dialogs for destructive actions; guided appointment booking flow; clear empty states; accessible loading indicators and inline form validation. | Verified across 28 Playwright cross-browser tests executing full booking, consultation, and administrative lifecycles with zero blocking errors. |
-| NFR-06 | Compatibility | Current desktop browsers; usable at tablet screen sizes | Modern ES/React build output; responsive CSS media queries across 1280px, 900px, 768px, 600px, and 480px; relative API routing supporting arbitrary host ports; no viewport overflow or clipped elements. | Verified across 4 Playwright test projects: Chromium Desktop (1280x800), Firefox Desktop (1280x800), WebKit Desktop (1280x800), and Tablet Viewport (768x1024) (28/28 tests passed). |
+| NFR-05 | Usability | Operable without prior training, with visible feedback for every action | Toast notifications for every outcome; confirmation dialogs for destructive actions; guided appointment booking flow; clear empty states; accessible loading indicators and inline form validation. | Verified across 28 Playwright cross-browser executions (7 unique specs across 4 projects) validating landing navigation, multi-role authentication/dashboard oversight, and zero runtime errors. (Booking and consultation completion flows are verified via backend integration tests). |
+| NFR-06 | Compatibility | Current desktop browsers; usable at tablet screen sizes | Modern ES/React build output; responsive CSS media queries across 1280px, 900px, 768px, 600px, and 480px; relative API routing supporting arbitrary host ports; no viewport overflow or clipped elements. | Verified across 4 Playwright test projects: Chromium Desktop (1280x800), Firefox Desktop (1280x800), WebKit Desktop (1280x800), and Tablet Viewport (768x1024) (28/28 executions passed). |
 | NFR-07 | Accessibility | Interactive controls keyboard reachable and clearly labelled | Semantic HTML buttons, links, and forms; ARIA labels on icon buttons and password inputs; visible focus indicators; modal focus trapping with auto-focus and Escape dismissal (`useModalA11y`); notification dropdown keyboard navigation (`tabIndex={0}`, Enter, Space). | Verified by Playwright accessibility suite (`e2e/accessibility_responsive.spec.js`) testing keyboard focusability, Tab navigation, and Escape dismissal across desktop and tablet viewports. |
-| NFR-08 | Maintainability | Consistent style, modular components, automated test coverage, documented environment setup | Layered architecture (routes, controllers, services, validators, models); modular React components and services; zero lint errors (`npm run lint`); automated unit, integration, and E2E test suites with dedicated test DB isolation. | 100% passing automated test suites: 25 backend Jest/Supertest tests, 28 frontend Playwright E2E tests, Vite build pass, Oxlint zero-error pass. |
+| NFR-08 | Maintainability | Consistent style, modular components, automated test coverage, documented environment setup | Layered architecture (routes, controllers, services, validators, models); modular React components and services; zero lint errors (`npm run lint`); automated unit, integration, and E2E test suites with dedicated test DB isolation. | 100% passing automated test suites: 25 backend Jest/Supertest tests, 28 frontend Playwright E2E test executions, Vite build pass, Oxlint zero-error pass. |
 
 ---
 
@@ -103,12 +101,23 @@ Command: `npm run test:server`
 - **Total Backend**: **5 Suites Passed, 25 of 25 Tests Passed (100%)**
 
 ### Frontend Cross-Browser & E2E Tests (Playwright)
-Command: `npx playwright test`
-- **Chromium Desktop** (1280x800): 7 passed (Patient booking flow, doctor consultation workspace, admin doctor onboarding, responsive layout check, keyboard form focusability, notification dropdown keyboard operability).
-- **Firefox Desktop** (1280x800): 7 passed (Full functional, responsive, and accessibility matrix).
-- **WebKit Desktop** (1280x800): 7 passed (Safari rendering engine compatibility verification).
-- **Tablet Viewport** (768x1024): 7 passed (iPad/tablet responsive layout, navigation drawer, card wrap verification).
-- **Total Frontend E2E**: **28 of 28 Tests Passed across 4 browser/device profiles (100%)**
+Command: `npx playwright test` (or `npm run test:e2e`)
+Execution: **7 unique test cases executed across 4 browser/device profiles = 28 executions**.
+- **Test Specs Executed**:
+  1. `e2e/workflows.spec.js`: Landing page loads with brand, navigation, and service highlights
+  2. `e2e/workflows.spec.js`: Patient login flow and dashboard navigation
+  3. `e2e/workflows.spec.js`: Doctor login flow and dashboard oversight
+  4. `e2e/workflows.spec.js`: Admin login flow and platform oversight (AC-01)
+  5. `e2e/accessibility_responsive.spec.js`: Responsive viewports do not trigger horizontal page overflow
+  6. `e2e/accessibility_responsive.spec.js`: Interactive navigation controls have accessible labels and keyboard focus
+  7. `e2e/accessibility_responsive.spec.js`: Notification bell is keyboard accessible with escape close
+- **Profiles Executed (4 Projects, 7 tests each = 28 total executions)**:
+  - **Chromium Desktop** (1280x800): 7 passed
+  - **Firefox Desktop** (1280x800): 7 passed
+  - **WebKit Desktop** (1280x800): 7 passed
+  - **Tablet Viewport** (768x1024): 7 passed
+- **Total Frontend E2E**: **28 of 28 Test Executions Passed (100%)**
+*(Note: Clinical appointment booking, slot race collision, and consultation diagnosis/prescription transactions are validated in the backend Jest integration test suite against `curelink_test`).*
 
 ### Static Quality & Build Verification
 - **Vite Production Build**: `npm run client-build` -> **0 errors, 0 warnings** (Initial chunk reduced to 268.98 kB).

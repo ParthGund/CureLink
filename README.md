@@ -64,18 +64,22 @@ Request flow: route, then `protect` / `authorize`, then validator, then controll
 ### Setup
 
 ```bash
-# 1. install dependencies
-npm run install-all
+# 1. install root and workspace dependencies
+npm install                   # installs root devDependencies including @playwright/test
+npm run install-all           # installs client and server dependencies
 
-# 2. server environment
-cp .env.example .env          # then edit the values
-# 3. client environment (optional for local dev; defaults to http://localhost:5000/api)
+# 2. install Playwright browsers (for automated E2E tests)
+npx playwright install --with-deps
+
+# 3. server environment
+cp .env.example .env          # then edit the values (including TEST_MONGO_URI)
+# 4. client environment (optional for local dev; defaults to http://localhost:5000/api)
 cp client/.env.example client/.env
 
-# 4. create the first administrator (interactive prompt)
+# 5. create the first administrator (interactive prompt)
 npm run create:admin --prefix server
 
-# 5. run both apps in two terminals
+# 6. run both apps in two terminals
 npm run server-dev            # API on http://localhost:5000
 npm run client-dev            # UI on http://localhost:5173
 ```
@@ -85,6 +89,7 @@ npm run client-dev            # UI on http://localhost:5173
 | Variable | Where | Purpose |
 |---|---|---|
 | `MONGO_URI` | server | MongoDB connection string (required) |
+| `TEST_MONGO_URI` | server, test | MongoDB connection string for the dedicated test database (required for tests; database name must contain `curelink_test`) |
 | `JWT_SECRET` | server | Secret used to sign tokens (required, use a long random value) |
 | `CLIENT_URL` | server | Exact origin of the frontend, used for CORS (required) |
 | `JWT_EXPIRE` | server | Token lifetime, default `7d` |
@@ -93,7 +98,7 @@ npm run client-dev            # UI on http://localhost:5173
 | `CLINIC_TZ_OFFSET` | server | Optional: timezone offset for local clinic calculations (e.g. `+05:30`, `330`, or `5.5`) |
 | `VITE_API_URL` | client, build time | API base URL, for example `http://localhost:5000/api`, or `/api` when the API serves the client |
 
-The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. In production, `JWT_SECRET` must be at least 32 characters and `CLIENT_URL` must contain valid HTTPS origins (comma-separated origins are supported). Real credentials must never be committed; `.env` is ignored by Git and `.env.example` contains placeholders only.
+The server refuses to start if `MONGO_URI`, `JWT_SECRET` or `CLIENT_URL` is missing. Automated test suites and E2E database seeding require `TEST_MONGO_URI` and strictly refuse to execute unless the connected database name contains `curelink_test`. In production, `JWT_SECRET` must be at least 32 characters and `CLIENT_URL` must contain valid HTTPS origins (comma-separated origins are supported). Real credentials must never be committed; `.env` is ignored by Git and `.env.example` contains placeholders only.
 
 ### Demo data
 
@@ -318,6 +323,48 @@ Safeguards:
 
 ---
 
+## Automated testing
+
+All automated tests use an isolated test database defined by `TEST_MONGO_URI` (which strictly requires the database name to contain `curelink_test`). Automated tests never touch development or production databases.
+
+### Prerequisites & browser installation
+
+```bash
+# Install root dependencies (including @playwright/test)
+npm install
+
+# Install Playwright browser binaries
+npx playwright install --with-deps
+```
+
+### Running the tests
+
+1. **Backend Unit & Integration Tests (Jest + Supertest)**:
+   ```bash
+   npm run test:server
+   ```
+   Runs 25 automated tests across 5 test suites (`auth.test.js`, `appointments.test.js`, `consultations_prescriptions.test.js`, `admin.test.js`, `resilience_reliability.test.js`).
+
+2. **Frontend Cross-Browser & E2E Tests (Playwright)**:
+   ```bash
+   npm run test:e2e
+   # or
+   npx playwright test
+   ```
+   Runs 7 unique test specifications across 4 projects (Chromium Desktop, Firefox Desktop, WebKit Desktop, and Tablet Viewport), producing 28 test executions.
+   - Test specifications:
+     - `e2e/workflows.spec.js`: Landing page rendering, patient login and dashboard navigation, doctor login and schedule navigation, admin login and platform oversight.
+     - `e2e/accessibility_responsive.spec.js`: Viewport horizontal overflow prevention, keyboard navigation and focusability, notification dropdown keyboard operability with Escape key handling.
+   *(Note: Appointment booking collisions and consultation diagnosis/prescription transactions are validated in the backend Jest integration test suite against `curelink_test`).*
+
+3. **Frontend Production Build & Linter**:
+   ```bash
+   npm run client-build
+   npm run lint --prefix client
+   ```
+
+---
+
 ## Deployment (single origin)
 
 The Express server also serves the built client from `client/dist`, so the API and UI share one origin. This matters because the auth cookie uses `sameSite: strict` and would not be sent between two different hosting domains.
@@ -344,7 +391,7 @@ See [docs/SRS-TRACEABILITY.md](docs/SRS-TRACEABILITY.md) for source-level status
 ## Known limitations
 
 - **Notifications:** Reminders are on-screen in-app notifications only; external SMS and email dispatch gateways are not integrated.
-- **Testing:** Automated end-to-end and unit test suites are slated for future development. Acceptance checks above are a checklist and are not evidence of passing tests; see the traceability document for this work's actual checks and pending verification.
+- **Testing:** 25 backend integration tests and 28 cross-browser Playwright test executions are implemented with dedicated test database isolation. Acceptance checks above remain the manual verification checklist.
 - **Patient accounts:** Patients are deactivated rather than deleted, which preserves their clinical history and prevents orphaned consultations.
 - **Email:** Email delivery is optional under the supplied SRS summary. No email provider or delivery credentials are configured; use the existing in-app reminder bell and dashboard reminders.
 - **Schedule concurrency:** Unique slot and active-appointment indexes prevent duplicate starts and double booking. Cross-request overlapping custom windows are checked before insertion; multi-instance schedule editing still needs runtime concurrency verification.

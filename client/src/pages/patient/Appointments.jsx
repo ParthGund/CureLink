@@ -99,6 +99,92 @@ function CancelConfirmModal({ appointment, onConfirm, onDismiss, confirming }) {
   );
 }
 
+/**
+ * Inline reschedule modal with accessible focus management and Escape dismissal.
+ */
+function RescheduleModal({
+  appointment,
+  newDate,
+  setNewDate,
+  newTimeSlot,
+  setNewTimeSlot,
+  availableSlots,
+  slotsLoading,
+  rescheduling,
+  onConfirm,
+  onDismiss,
+}) {
+  const modalRef = useModalA11y(!!appointment, () => {
+    if (!rescheduling) onDismiss();
+  });
+
+  if (!appointment) return null;
+
+  return (
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reschedule-title"
+      onClick={() => !rescheduling && onDismiss()}
+    >
+      <div
+        className="modal-panel modal-panel--narrow cancel-modal-body"
+        ref={modalRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="reschedule-title" className="cancel-modal-title">Reschedule appointment</h2>
+        <p className="cancel-modal-desc">
+          Choose a new available date and time with {appointment.doctor?.name || 'your doctor'}.
+        </p>
+        <label className="reschedule-modal__label" htmlFor="reschedule-date">New date</label>
+        <input
+          id="reschedule-date"
+          className="reschedule-modal__input"
+          type="date"
+          min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
+          value={newDate}
+          onChange={(e) => setNewDate(e.target.value)}
+          disabled={rescheduling}
+        />
+        <label className="reschedule-modal__label" htmlFor="reschedule-time">Available time</label>
+        <select
+          id="reschedule-time"
+          className="reschedule-modal__input"
+          value={newTimeSlot}
+          onChange={(e) => setNewTimeSlot(e.target.value)}
+          disabled={!newDate || slotsLoading || availableSlots.length === 0 || rescheduling}
+        >
+          <option value="">
+            {slotsLoading ? 'Loading times…' : availableSlots.length ? 'Select a time' : 'No times available'}
+          </option>
+          {availableSlots.map((slot) => (
+            <option key={slot} value={slot}>{slot}</option>
+          ))}
+        </select>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={onDismiss}
+            disabled={rescheduling}
+          >
+            Keep current time
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={onConfirm}
+            disabled={rescheduling || slotsLoading || !newDate || !newTimeSlot}
+          >
+            {rescheduling ? 'Rescheduling…' : 'Confirm reschedule'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PatientAppointments() {
   const toast = useToast();
 
@@ -297,42 +383,19 @@ export default function PatientAppointments() {
         </Card>
       )}
 
-      {/* ── Cancel confirmation modal ────────────────────────── */}
-      {rescheduleTarget && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reschedule-title" onClick={() => !rescheduling && setRescheduleTarget(null)}>
-          <div className="modal-panel modal-panel--narrow cancel-modal-body" onClick={(e) => e.stopPropagation()}>
-            <h2 id="reschedule-title" className="cancel-modal-title">Reschedule appointment</h2>
-            <p className="cancel-modal-desc">Choose a new available date and time with {rescheduleTarget.doctor?.name || 'your doctor'}.</p>
-            <label className="reschedule-modal__label" htmlFor="reschedule-date">New date</label>
-            <input
-              id="reschedule-date"
-              className="reschedule-modal__input"
-              type="date"
-              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-              disabled={rescheduling}
-            />
-            <label className="reschedule-modal__label" htmlFor="reschedule-time">Available time</label>
-            <select
-              id="reschedule-time"
-              className="reschedule-modal__input"
-              value={newTimeSlot}
-              onChange={(e) => setNewTimeSlot(e.target.value)}
-              disabled={!newDate || slotsLoading || availableSlots.length === 0 || rescheduling}
-            >
-              <option value="">{slotsLoading ? 'Loading times…' : availableSlots.length ? 'Select a time' : 'No times available'}</option>
-              {availableSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
-            </select>
-            <div className="modal-actions">
-              <button type="button" className="button button--secondary" onClick={() => setRescheduleTarget(null)} disabled={rescheduling}>Keep current time</button>
-              <button type="button" className="button" onClick={handleRescheduleConfirmed} disabled={rescheduling || slotsLoading || !newDate || !newTimeSlot}>
-                {rescheduling ? 'Rescheduling…' : 'Confirm reschedule'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Reschedule modal with accessible focus trapping & escape ── */}
+      <RescheduleModal
+        appointment={rescheduleTarget}
+        newDate={newDate}
+        setNewDate={setNewDate}
+        newTimeSlot={newTimeSlot}
+        setNewTimeSlot={setNewTimeSlot}
+        availableSlots={availableSlots}
+        slotsLoading={slotsLoading}
+        rescheduling={rescheduling}
+        onConfirm={handleRescheduleConfirmed}
+        onDismiss={() => setRescheduleTarget(null)}
+      />
 
       <CancelConfirmModal
         appointment={cancelTarget}

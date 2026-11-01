@@ -10,6 +10,9 @@
     "server-install": "npm install --prefix server",
     "server-dev": "npm run dev --prefix server",
     "server-start": "npm start --prefix server",
-    "install-all": "npm run client-install && npm run server-install"
+    "install-all": "npm run client-install && npm run server-install",
+    "test:server": "npm --prefix server test",
+    "test:client": "npx playwright test",
+    "test": "npm run test:server"
   }
 }

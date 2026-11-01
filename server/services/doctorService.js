@@ -3,6 +3,7 @@ const Doctor = require("../models/Doctor");
 const User = require("../models/User");
 const Consultation = require("../models/Consultation");
 const { httpError } = require("../utils/httpError");
+const { recordAudit } = require("../utils/auditLogger");
 
 // Fields returned on public endpoints (listing, by-id).
 const PUBLIC_FIELDS = "_id name specialization experience qualifications bio languages";
@@ -231,6 +232,15 @@ async function getDoctorPatientById(userId, patientId) {
   if (!patient) {
     throw httpError(404, "Patient not found.");
   }
+
+  await recordAudit({
+    action: "PATIENT_RECORD_ACCESSED",
+    user: { _id: userId, role: "doctor" },
+    targetUser: patient.userId,
+    resourceType: "Patient",
+    resourceId: patient._id,
+    details: { doctorId: doctor._id },
+  });
 
   return {
     ...patient.toObject(),

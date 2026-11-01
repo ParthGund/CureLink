@@ -5,6 +5,7 @@ const Prescription = require('../models/Prescription');
 const appointmentService = require('./appointmentService');
 const doctorService = require('./doctorService');
 const { httpError } = require('../utils/httpError');
+const { recordAudit } = require('../utils/auditLogger');
 
 /**
  * Start a new consultation for a doctor's own appointment.
@@ -276,6 +277,16 @@ async function completeConsultation(consultationId, user) {
     }
 
     await session.commitTransaction();
+
+    await recordAudit({
+      action: 'CONSULTATION_COMPLETED',
+      user,
+      targetUser: consultation.patient,
+      resourceType: 'Consultation',
+      resourceId: updatedConsultation._id,
+      details: { appointmentId: consultation.appointment },
+    });
+
     return updatedConsultation;
   } catch (err) {
     // A failed start/commit may leave no active transaction to abort. Preserve
@@ -303,17 +314,43 @@ async function completeConsultation(consultationId, user) {
         throw httpError(400, 'Consultation is already completed or modified concurrently.');
       }
 
-      const updatedAppointment = await Appointment.findOneAndUpdate(
-        {
-          _id: consultation.appointment,
-          status: { $in: ['scheduled', 'upcoming', 'confirmed'] },
-        },
-        { status: 'completed' },
-        { new: true }
-      );
+      let updatedAppointment;
+      try {
+        updatedAppointment = await Appointment.findOneAndUpdate(
+          {
+            _id: consultation.appointment,
+            status: { $in: ['scheduled', 'upcoming', 'confirmed'] },
+          },
+          { status: 'completed' },
+          { new: true }
+        );
+      } catch (appErr) {
+        // Revert consultation to prevent orphaned completed status if appointment update crashes
+        await Consultation.updateOne(
+          { _id: consultationId },
+          { $set: { status: 'in_progress', completedAt: null, prescription: null } }
+        ).catch(() => {});
+        throw appErr;
+      }
+
       if (!updatedAppointment) {
+        // Revert consultation to prevent orphaned completed status if appointment was not active
+        await Consultation.updateOne(
+          { _id: consultationId },
+          { $set: { status: 'in_progress', completedAt: null, prescription: null } }
+        ).catch(() => {});
         throw httpError(400, 'The appointment is no longer active and cannot be completed.');
       }
+
+      await recordAudit({
+        action: 'CONSULTATION_COMPLETED',
+        user,
+        targetUser: consultation.patient,
+        resourceType: 'Consultation',
+        resourceId: updatedConsultation._id,
+        details: { appointmentId: consultation.appointment, fallback: true },
+      });
+
       return updatedConsultation;
     } else {
       throw err;

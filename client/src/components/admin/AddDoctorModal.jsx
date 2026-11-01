@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createDoctor, updateDoctor } from '../../services/adminService';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const SPECIALIZATIONS = [
   'General Medicine',
@@ -63,6 +64,7 @@ function buildFormFromDoctor(doctor) {
  */
 export default function AddDoctorModal({ open, onClose, onCreated, doctor = null }) {
   const isEditMode = !!doctor;
+  const modalRef = useModalA11y(open, onClose);
 
   const [form, setForm] = useState({ ...INITIAL_FORM });
   const [error, setError] = useState('');
@@ -160,7 +162,7 @@ export default function AddDoctorModal({ open, onClose, onCreated, doctor = null
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="modal-panel">
+      <div className="modal-panel" ref={modalRef}>
         <header className="modal-header">
           <h2>{title}</h2>
           <button className="modal-close" type="button" aria-label="Close" onClick={onClose}>

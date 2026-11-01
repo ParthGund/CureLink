@@ -250,7 +250,14 @@ export default function NotificationDropdown() {
                     key={item.id}
                     className={`notif-item notif-item--${item.type}`}
                     role="menuitem"
+                    tabIndex={0}
                     onClick={handleItemClick}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleItemClick();
+                      }
+                    }}
                   >
                     <div className="notif-item__icon">
                       <Icon size={16} />

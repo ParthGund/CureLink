@@ -15,7 +15,7 @@ const {
 router.use(protect);
 
 router.post('/', authorize('patient'), createAppointment);
-router.get('/me', getMyAppointments);
+router.get('/me', authorize('patient'), getMyAppointments);
 router.get('/doctor/me', authorize('doctor'), getDoctorAppointments);
 router.get('/patient/:patientId', getPatientAppointments);
 router.get('/:id', getAppointmentById);

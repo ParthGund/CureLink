@@ -2,6 +2,7 @@ const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { validateRegistration, validateLogin } = require('../validators/authValidator');
 const { validatePatientProfileUpdate } = require('../validators/patientProfileValidator');
+const { recordAudit } = require('../utils/auditLogger');
 
 const PATIENT_PROFILE_SELECT = [
   'fullName',
@@ -137,6 +138,13 @@ const loginPatient = async (req, res) => {
     // Deactivated patient accounts cannot log in.
     // Admins and doctors are exempt from this restriction.
     if (user.role === 'patient' && user.isActive === false) {
+      await recordAudit({
+        action: 'DEACTIVATED_LOGIN_BLOCKED',
+        user,
+        ipAddress: req.ip,
+        details: { email: normalizedEmail },
+      });
+
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Please contact support.',
@@ -144,6 +152,12 @@ const loginPatient = async (req, res) => {
     }
 
     generateToken(res, user._id, user.role);
+
+    await recordAudit({
+      action: 'USER_LOGIN',
+      user,
+      ipAddress: req.ip,
+    });
 
     return res.status(200).json({
       success: true,

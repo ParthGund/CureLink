@@ -11,6 +11,7 @@ import {
   rescheduleAppointment,
 } from '../../services/appointmentService';
 import { useToast } from '../../context/ToastContext';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 /** Statuses that count as "upcoming" (active, not yet completed). */
 const ACTIVE_STATUSES = new Set(['upcoming', 'scheduled', 'confirmed']);
@@ -40,6 +41,7 @@ function getDay(apt) {
  * Rendered by Appointments when the patient clicks "Cancel appointment".
  */
 function CancelConfirmModal({ appointment, onConfirm, onDismiss, confirming }) {
+  const modalRef = useModalA11y(!!appointment, onDismiss);
   if (!appointment) return null;
 
   const doctorName = appointment.doctor?.name || 'the doctor';
@@ -60,6 +62,7 @@ function CancelConfirmModal({ appointment, onConfirm, onDismiss, confirming }) {
     >
       <div
         className="modal-panel modal-panel--narrow cancel-modal-body"
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="cancel-modal-icon" aria-hidden="true">

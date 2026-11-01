@@ -33,3 +33,7 @@ lerna-debug.log*
 
 # Archives
 *.zip
+
+# Test outputs
+test-results/
+playwright-report/

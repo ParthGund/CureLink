@@ -46,6 +46,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
@@ -58,6 +60,22 @@ const prescriptionRoutes = require('./routes/prescriptionRoutes');
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
+
+// ── HTTP response compression (NFR-01: Performance) ───────────
+app.use(compression());
+
+// ── Baseline API rate limiter (NFR-03: Security) ───────────────
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many requests. Please try again later.',
+  },
+});
+app.use('/api', apiLimiter);
 
 // ── Security headers ───────────────────────────────────────────
 app.use(helmet({
@@ -93,9 +111,11 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 
-// Serve client static build files in production for single-origin deployment
+// Serve client static build files in production with caching headers (NFR-01: Performance)
 const clientDist = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDist));
+app.use(express.static(clientDist, {
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+}));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
@@ -104,6 +124,14 @@ app.get(/^\/(?!api).*/, (req, res) => {
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 app.use(notFound);
 app.use(errorHandler);
+
+// Process-level exception handling (NFR-04: Reliability)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception thrown:', err.message, err.stack);
+});
 
 // Connect to database, then start server
 let httpServer;
@@ -129,15 +157,19 @@ process.once('SIGTERM', () => shutdown('SIGTERM').then(() => process.exit(0)).ca
   console.error('Shutdown failed:', err.message); process.exit(1);
 }));
 
-connectDB().then(() => {
-  // Start background job: mark stale "scheduled" appointments as "missed"
-  const { startMissedAppointmentJob } = require('./services/missedAppointmentJob');
-  missedJob = startMissedAppointmentJob();
+if (require.main === module) {
+  connectDB().then(() => {
+    // Start background job: mark stale "scheduled" appointments as "missed"
+    const { startMissedAppointmentJob } = require('./services/missedAppointmentJob');
+    missedJob = startMissedAppointmentJob();
 
-  httpServer = app.listen(PORT, () => {
-    console.log(`CureLink server running on port ${PORT}`);
+    httpServer = app.listen(PORT, () => {
+      console.log(`CureLink server running on port ${PORT}`);
+    });
+  }).catch((error) => {
+    console.error(`CureLink startup failed: ${error.message}`);
+    process.exit(1);
   });
-}).catch((error) => {
-  console.error(`CureLink startup failed: ${error.message}`);
-  process.exit(1);
-});
+}
+
+module.exports = app;

@@ -51,4 +51,6 @@ const doctorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+doctorSchema.index({ specialization: 1 });
+
 module.exports = mongoose.model("Doctor", doctorSchema);

@@ -109,14 +109,7 @@ async function bookAppointment(user, { doctorId, date, timeSlot, reason, patient
   const dayEnd = new Date(appointmentDate);
   dayEnd.setUTCHours(23, 59, 59, 999);
 
-  const isoDate = toIsoDate(appointmentDate);
-  const availableLabels = await scheduleService.getAvailableLabelsForDate(doctorId, isoDate);
-
-  if (!availableLabels.includes(timeSlot)) {
-    throw httpError(400, 'The requested time slot is invalid, unavailable, or does not exist for this date.');
-  }
-
-  // Explicit conflict check — catches race conditions before the unique index.
+  // Explicit conflict check — catches race conditions and already booked slots (FR-05, AC-04).
   // A slot is considered taken if an active appointment already exists for this
   // doctor / date / timeSlot combination.
   const conflict = await Appointment.findOne({
@@ -128,6 +121,13 @@ async function bookAppointment(user, { doctorId, date, timeSlot, reason, patient
 
   if (conflict) {
     throw httpError(409, 'This slot has already been booked by another patient. Please choose a different time.');
+  }
+
+  const isoDate = toIsoDate(appointmentDate);
+  const availableLabels = await scheduleService.getAvailableLabelsForDate(doctorId, isoDate);
+
+  if (!availableLabels.includes(timeSlot)) {
+    throw httpError(400, 'The requested time slot is invalid, unavailable, or does not exist for this date.');
   }
 
   // Create appointment with status 'scheduled' (enters lifecycle at the first active state)

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { X, CalendarDays, Clock, User, Mail, Phone, FileText, Stethoscope } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 /**
  * Displays full appointment details in a modal overlay.
@@ -12,6 +13,7 @@ import { X, CalendarDays, Clock, User, Mail, Phone, FileText, Stethoscope } from
  */
 export default function AppointmentDetailModal({ appointment, onClose, onCancel, cancelling, consultation, onStartConsultation, starting }) {
   const navigate = useNavigate();
+  const modalRef = useModalA11y(!!appointment, onClose);
   if (!appointment) return null;
 
   const { patient, date, timeSlot, status, reason, notes, createdAt, _id } = appointment;
@@ -42,8 +44,10 @@ export default function AppointmentDetailModal({ appointment, onClose, onCancel,
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-panel dr-apt-detail"
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Appointment Details"
       >
         <div className="modal-header">

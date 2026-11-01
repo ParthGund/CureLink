@@ -5,6 +5,7 @@ const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const Consultation = require('../models/Consultation');
 const { validateDoctorCreation, validateDoctorUpdate } = require('../validators/doctorValidator');
+const { recordAudit } = require('../utils/auditLogger');
 
 // ── Stats ──────────────────────────────────────────────────────
 
@@ -79,10 +80,21 @@ const getPlatformStats = async (req, res) => {
  */
 const getAllDoctors = async (req, res) => {
   try {
-    const doctors = await Doctor.find()
-      .populate('user', 'name email role createdAt')
-      .sort({ createdAt: -1 });
+    const page = parseInt(req.query.page, 10);
+    const limit = parseInt(req.query.limit, 10);
 
+    let query = Doctor.find()
+      .populate('user', 'name email role createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (page && limit && page > 0 && limit > 0) {
+      const total = await Doctor.countDocuments();
+      const doctors = await query.skip((page - 1) * limit).limit(limit);
+      return res.json({ success: true, doctors, total, page, pages: Math.ceil(total / limit) });
+    }
+
+    const doctors = await query;
     res.json({ success: true, doctors });
   } catch (error) {
     res.status(500).json({
@@ -290,10 +302,21 @@ const deleteDoctor = async (req, res) => {
  */
 const getAllPatients = async (req, res) => {
   try {
-    const patients = await User.find({ role: 'patient' })
-      .select('_id name email isActive createdAt')
-      .sort({ createdAt: -1 });
+    const page = parseInt(req.query.page, 10);
+    const limit = parseInt(req.query.limit, 10);
 
+    let query = User.find({ role: 'patient' })
+      .select('_id name email isActive createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (page && limit && page > 0 && limit > 0) {
+      const total = await User.countDocuments({ role: 'patient' });
+      const patients = await query.skip((page - 1) * limit).limit(limit);
+      return res.json({ success: true, patients, total, page, pages: Math.ceil(total / limit) });
+    }
+
+    const patients = await query;
     res.json({ success: true, patients });
   } catch (error) {
     res.status(500).json({
@@ -336,6 +359,16 @@ const deactivatePatient = async (req, res) => {
 
     user.isActive = false;
     await user.save();
+
+    await recordAudit({
+      action: 'PATIENT_DEACTIVATED',
+      user: req.user,
+      targetUser: user._id,
+      resourceType: 'User',
+      resourceId: user._id,
+      ipAddress: req.ip,
+      details: { patientEmail: user.email },
+    });
 
     res.json({
       success: true,
@@ -388,6 +421,16 @@ const reactivatePatient = async (req, res) => {
     user.isActive = true;
     await user.save();
 
+    await recordAudit({
+      action: 'PATIENT_REACTIVATED',
+      user: req.user,
+      targetUser: user._id,
+      resourceType: 'User',
+      resourceId: user._id,
+      ipAddress: req.ip,
+      details: { patientEmail: user.email },
+    });
+
     res.json({
       success: true,
       message: 'Patient account reactivated successfully.',
@@ -414,11 +457,27 @@ const reactivatePatient = async (req, res) => {
  */
 const getAllAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find()
+    const page = parseInt(req.query.page, 10);
+    const limit = parseInt(req.query.limit, 10);
+    const status = req.query.status;
+    const filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    let query = Appointment.find(filter)
       .populate('patient', 'fullName email')
       .populate('doctor', 'name specialization')
-      .sort({ date: -1 });
+      .sort({ date: -1 })
+      .lean();
 
+    if (page && limit && page > 0 && limit > 0) {
+      const total = await Appointment.countDocuments(filter);
+      const appointments = await query.skip((page - 1) * limit).limit(limit);
+      return res.json({ success: true, appointments, total, page, pages: Math.ceil(total / limit) });
+    }
+
+    const appointments = await query;
     res.json({ success: true, appointments });
   } catch (error) {
     res.status(500).json({

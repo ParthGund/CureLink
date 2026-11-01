@@ -32,4 +32,9 @@ appointmentSchema.index(
   { unique: true, partialFilterExpression: { status: { $in: ["upcoming", "scheduled", "confirmed"] } } }
 );
 
+// High-traffic query indexes for scalability & performance (NFR-01, NFR-02)
+appointmentSchema.index({ patient: 1, date: -1 });
+appointmentSchema.index({ doctor: 1, date: -1 });
+appointmentSchema.index({ status: 1 });
+
 module.exports = mongoose.model("Appointment", appointmentSchema);
